@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tracker test page</title>
+    <script src="./tracker.js" data-org="1"></script>
+    <style>
+      .button-container {
+        display: flex;
+        gap: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="button-container">
+      <button id="clickButton">Click event</button>
+      <button id="purchaseButton">Purchase event</button>
+    </div>
+
+    <script>
+      const clickButton = document.getElementById("clickButton");
+      const purchaseButton = document.getElementById("purchaseButton");
+
+      const clickButtonCallback = () => {
+        if (!wikipulse) {
+          console.log("Wikipulse is not inited");
+          return;
+        }
+
+        wikipulse("click", "ClickButton");
+      };
+
+      const purchaseButtonCallback = () => {
+        if (!wikipulse) {
+          console.log("Wikipulse is not inited");
+          return;
+        }
+
+        wikipulse("purchase", "PurchaseButton");
+      };
+
+      clickButton.addEventListener("click", clickButtonCallback);
+      purchaseButton.addEventListener("click", purchaseButtonCallback);
+    </script>
+  </body>
+</html>
