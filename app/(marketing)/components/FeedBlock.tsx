@@ -1,5 +1,3 @@
-import { jetBrainsMono } from "@/app/fonts";
-import clsx from "clsx";
 import { PulseIcon } from "./PulseIcon";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
@@ -65,10 +63,7 @@ export const FeedBlock = () => {
   return (
     <div className="border border-ink bg-shell">
       <div
-        className={clsx(
-          jetBrainsMono.className,
-          "flex items-center gap-2.25 px-3 py-2.25 border border-rule text-[11px] text-ink-soft",
-        )}
+        className="font-data flex items-center gap-2.25 px-3 py-2.25 border border-rule text-[11px] text-ink-soft"
       >
         <PulseIcon mode={"Infinite"} /> LIVE
         <span className="ml-auto text-ink-faint">org: acme-inc</span>
@@ -77,10 +72,7 @@ export const FeedBlock = () => {
         <FeedEvents />
       </Suspense>
       <div
-        className={clsx(
-          jetBrainsMono.className,
-          "px-3 py-3.5 border-t border-t-rule flex items-baseline gap-2.5",
-        )}
+        className="font-data px-3 py-3.5 border-t border-t-rule flex items-baseline gap-2.5"
       >
         <Suspense fallback={<TotalEventCountSkeleton />}>
           <TotalEventCountLabel />
@@ -106,10 +98,7 @@ const FeedList = ({ events }: { events: PreviewEventType[] }) => {
       {events.map((event) => (
         <div
           key={event.id}
-          className={clsx(
-            jetBrainsMono.className,
-            "animate-feed-row-slidein grid grid-cols-[60px_74px_1fr_30px] gap-2 items-center px-3 py-1.75 border-b border-b-[#EDEFEA] text-[11.5px] whitespace-nowrap",
-          )}
+          className="font-data animate-feed-row-slidein grid grid-cols-[60px_74px_1fr_30px] gap-2 items-center px-3 py-1.75 border-b border-b-[#EDEFEA] text-[11.5px] whitespace-nowrap"
         >
           <span className="text-ink-faint tabular-nums">
             {getTime(event.timestamp)}

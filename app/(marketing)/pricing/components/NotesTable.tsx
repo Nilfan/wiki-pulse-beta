@@ -1,5 +1,3 @@
-import { martianMono } from "@/app/fonts";
-import clsx from "clsx";
 
 const NOTES = [
   {
@@ -24,14 +22,11 @@ export const NotesTable = () => (
     {NOTES.map(({ content, title }, i) => (
       <div key={i}>
         <h3
-          className={clsx(
-            martianMono.className,
-            "font-medium text-[13px] tracking-[-0.04em] mx-0 mt-0 mb-2",
-          )}
+          className="font-display font-medium text-[13px] tracking-[-0.04em] mx-0 mt-0 mb-2"
         >
           {title}
         </h3>
-        <p className={clsx("m-0 text-[14px] text-ink-soft")}>{content}</p>
+        <p className="m-0 text-[14px] text-ink-soft">{content}</p>
       </div>
     ))}
   </div>

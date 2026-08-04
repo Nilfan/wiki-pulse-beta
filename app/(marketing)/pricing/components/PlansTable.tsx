@@ -1,4 +1,3 @@
-import { jetBrainsMono, martianMono } from "@/app/fonts";
 import clsx from "clsx";
 import { JSX } from "react";
 
@@ -97,21 +96,11 @@ export const PlansTable = () => (
           )}
           key={name}
         >
-          <h2
-            className={clsx(
-              martianMono.className,
-              "font-bold text-[14px] tracking-[-0.04em] mx-0 mt-0 mb-1 flex items-center gap-2.25",
-            )}
-          >
+          <h2 className="font-display font-bold text-[14px] tracking-[-0.04em] mx-0 mt-0 mb-1 flex items-center gap-2.25">
             {name}
 
             {extraBadge ? (
-              <span
-                className={clsx(
-                  jetBrainsMono.className,
-                  "text-[9.5px] tracking-[0.08em] uppercase text-signal border border-signal py-px px-1.5 font-normal",
-                )}
-              >
+              <span className="font-data text-[9.5px] tracking-[0.08em] uppercase text-signal border border-signal py-px px-1.5 font-normal">
                 {extraBadge}
               </span>
             ) : null}
@@ -119,28 +108,13 @@ export const PlansTable = () => (
           <p className="mx-0 mt-0 mb-5.5 text-[13.5px] text-ink-soft min-h-[2.6em]">
             {description}
           </p>
-          <div
-            className={clsx(
-              jetBrainsMono.className,
-              "font-bold text-[32px] tracking-[-.03em] leading-none tabular-nums",
-            )}
-          >
+          <div className="font-data font-bold text-[32px] tracking-[-.03em] leading-none tabular-nums">
             {price}
           </div>
-          <p
-            className={clsx(
-              jetBrainsMono.className,
-              "text-[11.5px] text-ink-faint mx-0 mt-1.75 mb-5",
-            )}
-          >
+          <p className="font-data text-[11.5px] text-ink-faint mx-0 mt-1.75 mb-5">
             {paymentPeriod}
           </p>
-          <p
-            className={clsx(
-              jetBrainsMono.className,
-              "text-[12px] px-0 py-2.25 border-t border-t-rule border-b border-b-rule mb-4.5",
-            )}
-          >
+          <p className="font-data text-[12px] px-0 py-2.25 border-t border-t-rule border-b border-b-rule mb-4.5">
             {quotaTooltip}
           </p>
           <ul className="mx-0 mt-0 mb-6.5 text-[14px] text-ink-soft">
@@ -155,8 +129,7 @@ export const PlansTable = () => (
           </ul>
           <button
             className={clsx(
-              jetBrainsMono.className,
-              "mt-auto text-center text-[12.5px] px-3.5 py-2.75 border border-ink",
+              "font-data mt-auto text-center text-[12.5px] px-3.5 py-2.75 border border-ink",
               { ["bg-ink text-paper"]: isHighlighted },
             )}
           >

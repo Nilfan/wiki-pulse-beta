@@ -1,4 +1,3 @@
-import { jetBrainsMono } from "@/app/fonts";
 import clsx from "clsx";
 
 const skeletonRows = Array.from({ length: 10 });
@@ -10,10 +9,7 @@ const SkeletonBar = ({ className }: { className: string }) => (
 export const FeedListSkeleton = () => (
   <div
     aria-hidden="true"
-    className={clsx(
-      jetBrainsMono.className,
-      "h-75.5 overflow-hidden animate-pulse",
-    )}
+    className="font-data h-75.5 overflow-hidden animate-pulse"
   >
     {skeletonRows.map((_, index) => (
       <div

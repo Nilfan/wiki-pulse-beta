@@ -3,7 +3,6 @@
 import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { jetBrainsMono } from "@/app/fonts";
 
 export default function ControlTab({
   title,
@@ -20,13 +19,11 @@ export default function ControlTab({
     <Link href={link} prefetch={prefetch}>
       <button
         className={clsx(
-          jetBrainsMono.className,
           {
             ["text-ink border-rule bg-shell"]: pathname === link,
             ["text-ink-soft border-transparent bg-none"]: pathname !== link,
           },
-
-          "text-[12.5px] tracking-[0.02em]  py-1.75 px-2.75 border border-solid ",
+          "font-data text-[12.5px] tracking-[0.02em]  py-1.75 px-2.75 border border-solid ",
         )}
       >
         {title}

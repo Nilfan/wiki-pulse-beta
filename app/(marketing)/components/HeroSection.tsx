@@ -1,5 +1,3 @@
-import { interTight, jetBrainsMono, martianMono } from "@/app/fonts";
-import clsx from "clsx";
 import { FeedBlock } from "./FeedBlock";
 
 export const HeroSection = () => (
@@ -18,61 +16,43 @@ export const HeroSection = () => (
     >
       <div>
         <p
-          className={clsx(
-            "mb-4.5 font-display text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-soft",
-            martianMono.className,
-          )}
+          className="mb-4.5 font-display text-[10.5px] font-medium uppercase tracking-[0.16em] text-ink-soft"
         >
           Product analytics
         </p>
         <h1
-          className={clsx(
-            martianMono.className,
-            "mb-5.5 max-w-[15ch] font-display text-[clamp(27px,3.5vw,45px)] leading-[1.12] font-bold tracking-[-0.075em]",
-          )}
+          className="mb-5.5 max-w-[15ch] font-display text-[clamp(27px,3.5vw,45px)] leading-[1.12] font-bold tracking-[-0.075em]"
         >
           Every event, in the order it{" "}
           <em className="not-italic text-signal">happened</em>.
         </h1>
         <p
-          className={clsx(
-            interTight.className,
-            "m-0 max-w-[46ch] text-[clamp(16px,1.5vw,18px)] text-ink-soft",
-          )}
+          className="font-body m-0 max-w-[46ch] text-[clamp(16px,1.5vw,18px)] text-ink-soft"
         >
           One script tag. Events land indexed by type, path and host — so the
           questions you actually ask stay fast at a million rows.
         </p>
         <div className="flex flex-wrap gap-3 mt-7.5">
           <button
-            className={clsx(
-              jetBrainsMono.className,
-              `inline-block border border-ink bg-ink px-5 py-3 text-[13px] text-paper  hover:border-signal hover:bg-signal`,
-            )}
+            className="font-data inline-block border border-ink bg-ink px-5 py-3 text-[13px] text-paper hover:border-signal hover:bg-signal"
           >
             Start tracking
           </button>
           <button
-            className={clsx(
-              jetBrainsMono.className,
-              `
+            className="font-data
                     inline-block
                     border border-ink
                     bg-transparent
                     px-5 py-3
                     text-[13px]
                     text-ink 
-                    hover:bg-shell`,
-            )}
+                    hover:bg-shell"
           >
             See a live dashboard
           </button>
         </div>
         <p
-          className={clsx(
-            jetBrainsMono.className,
-            "mt-6.5 text-[11.5px] text-ink-faint tracking-[0.02em]",
-          )}
+          className="font-data mt-6.5 text-[11.5px] text-ink-faint tracking-[0.02em]"
         >
           No cookie banner required · Self-serve on the free tier
         </p>

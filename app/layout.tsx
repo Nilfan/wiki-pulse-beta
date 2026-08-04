@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import clsx from "clsx";
-import { interTight } from "./fonts";
+import { interTight, jetBrainsMono, martianMono } from "./fonts";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,7 +16,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={clsx(interTight.className, "h-full antialiased")}
+      className={clsx(
+        interTight.variable,
+        martianMono.variable,
+        jetBrainsMono.variable,
+        "h-full antialiased",
+      )}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

@@ -1,5 +1,3 @@
-import { jetBrainsMono, martianMono } from "@/app/fonts";
-import clsx from "clsx";
 
 const GRID_BLOCKS = [
   {
@@ -32,18 +30,12 @@ export const FeetSection = () => (
             className="pt-6.5 pb-7.5 px-6.5 border-b border-b-rule border-r border-r-rule "
           >
             <p
-              className={clsx(
-                jetBrainsMono.className,
-                "text-[11px] text-signal tracking-[0.03em] mx-0 mt-0 mb-3",
-              )}
+              className="font-data text-[11px] text-signal tracking-[0.03em] mx-0 mt-0 mb-3"
             >
               {topic}
             </p>
             <h3
-              className={clsx(
-                martianMono.className,
-                "font-medium text-[15px] tracking-tighter mx-0 mt-0 mb-2.25 leading-[19.5px]",
-              )}
+              className="font-display font-medium text-[15px] tracking-tighter mx-0 mt-0 mb-2.25 leading-[19.5px]"
             >
               {title}
             </h3>
