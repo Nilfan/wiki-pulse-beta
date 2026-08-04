@@ -33,23 +33,17 @@ Key takeaways:
 
 ## 2. Environment variables
 
-Neon gives two connection strings. They are **not** interchangeable:
+`DATABASE_URL` is the required database connection string for both the running app and
+Prisma CLI commands. It must point to the database whose schema and data the current
+environment should use.
 
-- **Pooled** (host contains `-pooler`, routed through PgBouncer) → for the app at runtime.
-  Serverless functions open many short-lived connections; the pooler keeps you under
-  Postgres' connection limit.
-- **Direct** (no `-pooler`) → for migrations and `db push`. The pooler runs in transaction
-  mode and cannot run schema-changing SQL (DDL) or migration bookkeeping — those commands
-  hang or fail on it.
-
-Prisma 7 configures the CLI connection in `prisma.config.ts`; `directUrl` in
-`schema.prisma` was removed. The running app creates its driver adapter separately from
-`DATABASE_URL` (see `lib/db/index.ts`).
+Prisma 7 configures the CLI connection in `prisma.config.ts`. The running app creates its
+driver adapter from the same variable (see `lib/db/index.ts`).
 
 ```ts
 // prisma.config.ts — used by Prisma CLI commands
 datasource: {
-  url: process.env["DIRECT_URL"],
+  url: process.env["DATABASE_URL"],
 }
 ```
 
@@ -57,12 +51,8 @@ datasource: {
 
 ```bash
 # --- Neon (production) ---
-DATABASE_URL="postgresql://USER:PASS@ep-xxxx-pooler.REGION.aws.neon.tech/neondb?sslmode=require"
-DIRECT_URL="postgresql://USER:PASS@ep-xxxx.REGION.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL="postgresql://USER:PASS@HOST.REGION.aws.neon.tech/neondb?sslmode=require"
 ```
-
-Locally (Docker, section 3) both point at the **same** local instance — no pooler exists,
-so pooled and direct are identical.
 
 ---
 
@@ -97,7 +87,6 @@ volumes:
 
 ```bash
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/nextjs_dev?schema=public"
-DIRECT_URL="postgresql://postgres:postgres@localhost:5432/nextjs_dev?schema=public"
 ```
 
 ### 3.3 Container commands
@@ -198,7 +187,7 @@ it's just empty.
 **Fix:**
 
 ```bash
-# make sure DATABASE_URL/DIRECT_URL point at the target DB
+# make sure DATABASE_URL points at the target DB
 pnpm prisma migrate deploy        # applies existing migrations
 # or, if prisma/migrations/ doesn't exist yet:
 pnpm prisma migrate dev --name init   # LOCAL, creates the first migration
@@ -236,7 +225,7 @@ pnpm prisma migrate reset
 
 Drops the schema and replays every migration from scratch. Afterwards run
 `pnpm prisma db seed` explicitly. This gives you a clean migration-tracked DB. **Destroys data** — fine at this
-stage (the seed is repeatable). Needs the **direct** URL (runs DDL).
+stage (the seed is repeatable). `DATABASE_URL` must allow schema-changing operations.
 
 After either, your normal `migrate deploy` build passes.
 
@@ -309,9 +298,9 @@ pnpm prisma migrate deploy
 
 ### Q5 — `migrate deploy` hangs or errors on Neon
 
-**Cause:** you're running it through the **pooled** (`-pooler`) URL. PgBouncer can't run
-migration DDL/bookkeeping. **Fix:** point migrations at `DIRECT_URL` (section 2). Keep the
-pooled URL only for the running app.
+Confirm that `DATABASE_URL` points to the intended Neon database, is reachable from the
+deployment environment, and uses credentials that can run schema-changing SQL and update
+the `_prisma_migrations` table.
 
 ---
 
@@ -389,5 +378,5 @@ pnpm prisma migrate diff ...                      # inspect drift
 ```
 
 > Golden rules: **one workflow** (migrate, never `db push` once history exists) ·
-> **`migrate dev` local, `migrate deploy` remote** · **migrations use the direct URL,
-> the app uses the pooled URL**.
+> **`migrate dev` local, `migrate deploy` remote** · **the app and Prisma CLI read
+> `DATABASE_URL`**.
