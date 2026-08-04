@@ -81,7 +81,6 @@
 
 body {
   background: var(--background);
-  background: purple;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   height: 100%;
