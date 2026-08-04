@@ -9,6 +9,7 @@ export default defineConfig({
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Prisma CLI commands (migrate, db push, diff) must bypass Neon's pooler.
+    url: process.env["DIRECT_URL"],
   },
 });

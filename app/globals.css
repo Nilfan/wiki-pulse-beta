@@ -87,3 +87,7 @@ body {
   height: 100%;
   overflow: hidden;
 }
+
+button {
+  cursor: pointer;
+}

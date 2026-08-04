@@ -153,7 +153,7 @@ export const PlansTable = () => (
               </li>
             ))}
           </ul>
-          <div
+          <button
             className={clsx(
               jetBrainsMono.className,
               "mt-auto text-center text-[12.5px] px-3.5 py-2.75 border border-ink",
@@ -161,7 +161,7 @@ export const PlansTable = () => (
             )}
           >
             {ctaText}
-          </div>
+          </button>
         </div>
       ),
     )}

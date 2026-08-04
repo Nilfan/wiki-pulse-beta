@@ -8,7 +8,7 @@ export const HeroSection = () => (
       className="
           grid 
           mx-auto
-          max-w-[1180w]
+          max-w-maxw
           grid-cols-1
           items-start
           gap-[clamp(32px, 5vw, 72px)]
