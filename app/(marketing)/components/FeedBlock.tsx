@@ -3,17 +3,26 @@ import clsx from "clsx";
 import { PulseIcon } from "./PulseIcon";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
+import { cacheLife, cacheTag } from "next/cache";
+import { Suspense } from "react";
+import {
+  FeedListSkeleton,
+  TotalEventCountSkeleton,
+} from "./FeedBlockSkeletons";
 
 type PreviewEventType = Pick<
   Prisma.EventModel,
   "id" | "timestamp" | "type" | "path" | "country"
 >;
 
-export const FeedBlock = async () => {
-  const eventCount = await prisma.event.count();
+async function getLastNEvents(n = 20) {
+  "use cache";
 
-  const events: PreviewEventType[] = await prisma.event.findMany({
-    take: -20,
+  cacheTag("events");
+  cacheLife("hours");
+
+  return await prisma.event.findMany({
+    take: -n,
     orderBy: {
       timestamp: "desc",
     },
@@ -25,9 +34,34 @@ export const FeedBlock = async () => {
       country: true,
     },
   });
+}
 
+async function getEventsTotalCount() {
+  "use cache";
+  cacheTag("events");
+  cacheLife("hours");
+
+  return await prisma.event.count();
+}
+
+async function TotalEventCountLabel() {
+  const eventCount = await getEventsTotalCount();
   const eventCountFormatted = eventCount ? eventCount.toLocaleString() : 0;
 
+  return (
+    <span className="font-bold text-[clamp(21px,2.4vw,27px)] tracking-[-0.02em] tabular-nums">
+      {eventCountFormatted}
+    </span>
+  );
+}
+
+async function FeedEvents() {
+  const events: PreviewEventType[] = await getLastNEvents();
+
+  return <FeedList events={events} />;
+}
+
+export const FeedBlock = () => {
   return (
     <div className="border border-ink bg-shell">
       <div
@@ -39,16 +73,18 @@ export const FeedBlock = async () => {
         <PulseIcon mode={"Infinite"} /> LIVE
         <span className="ml-auto text-ink-faint">org: acme-inc</span>
       </div>
-      <FeedList events={events} />
+      <Suspense fallback={<FeedListSkeleton />}>
+        <FeedEvents />
+      </Suspense>
       <div
         className={clsx(
           jetBrainsMono.className,
           "px-3 py-3.5 border-t border-t-rule flex items-baseline gap-2.5",
         )}
       >
-        <span className="font-bold text-[clamp(21px,2.4vw,27px)] tracking-[-0.02em] tabular-nums">
-          {eventCountFormatted}
-        </span>
+        <Suspense fallback={<TotalEventCountSkeleton />}>
+          <TotalEventCountLabel />
+        </Suspense>
         <span className="text-[11px] text-ink-soft">events tracked</span>
         <span className="text-[10.5px] text-ink-soft ml-auto">
           refreshed hourly
