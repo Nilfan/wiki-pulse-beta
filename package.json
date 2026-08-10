@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "start:data-collector": "deno run --env-file -R -E --allow-net --sloppy-imports --allow-sys data-collector/index.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

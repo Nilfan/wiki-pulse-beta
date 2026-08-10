@@ -1,0 +1,17 @@
+{
+  "name": "data-collector",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "deno run -R -E --allow-net --sloppy-imports --allow-sys index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.24.0",
+  "dependencies": {
+    "eventsource": "^4.1.0"
+  }
+}

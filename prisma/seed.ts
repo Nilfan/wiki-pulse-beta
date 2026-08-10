@@ -3,6 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, Prisma } from "../generated/prisma/client";
 import { Pool } from "pg";
 import { OrganizationCreateInput } from "@/generated/prisma/models";
+import { WIKI_ORG } from "./constants";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -12,7 +13,7 @@ const EVENT_BATCH_CAPACITY = 1000;
 const EVENT_MAX_COUNT = 11000;
 const EVENT_MIN_COUNT = 10000;
 
-const MOCK_ORGS = [
+const MOCK_ORGS: Prisma.OrganizationCreateInput[] = [
   {
     name: "Fooble",
     slug: "https://fake-url-fooble.com",
@@ -30,6 +31,12 @@ const MOCK_ORGS = [
 async function initMockOrgs() {
   await prisma.organization.createMany({
     data: MOCK_ORGS,
+  });
+}
+
+async function initWikiOrg() {
+  await prisma.organization.create({
+    data: WIKI_ORG,
   });
 }
 
@@ -134,7 +141,7 @@ async function initMockEvents() {
   ) => {
     for (let i = 0; i < count; i++) {
       const org = orgs[Math.floor(Math.random() * orgs.length)];
-      const timestamp = getRandomSeasonalTimestamp(60);
+      const timestamp = getRandomSeasonalTimestamp(21);
       const session_id = `sess_${Math.random().toString(36).substring(2, 10)}`;
       const user_agent =
         USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
@@ -250,6 +257,7 @@ async function main() {
 
   await initMockOrgs();
   await initMockEvents();
+  await initWikiOrg();
 
   console.log("Database seeded successfully!");
 }
