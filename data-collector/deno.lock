@@ -23,6 +23,7 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:cd@~0.3.3",
         "npm:eventsource@^4.1.0"
       ]
     }
