@@ -12,6 +12,8 @@
   "license": "ISC",
   "packageManager": "pnpm@10.24.0",
   "dependencies": {
-    "eventsource": "^4.1.0"
+    "cd": "^0.3.3",
+    "eventsource": "^4.1.0",
+    "wiki-pulse": "link:.."
   }
 }

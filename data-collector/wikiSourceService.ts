@@ -111,7 +111,8 @@ class WikiSourceService {
 
   private getPrismaClient() {
     const pgUrl = process.env.PG_URL || LOCAL_PG_URL;
-    console.log(`[WikiSourceService] PG_URL: ${pgUrl}`);
+    const isLocalLabel = pgUrl === LOCAL_PG_URL ? "local" : "env/prod";
+    console.log(`[WikiSourceService] PG_URL: ${isLocalLabel} url`);
     const pool = new Pool({
       connectionString: pgUrl,
     });
