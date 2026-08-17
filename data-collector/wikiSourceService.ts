@@ -142,7 +142,9 @@ class WikiSourceService {
         const flushTime = this.getTime(date);
 
         console.log("[WikiSourceService] Flush events: ", flushTime);
-        this.flushEvents(wikiOrgId, [...this.eventBatch]);
+        this.flushEvents(wikiOrgId, [...this.eventBatch]).catch((err) => {
+          console.log(`[WikiSourceService] Error on flush events: ${err}`);
+        });
         this.eventBatch = [];
       }
     };
