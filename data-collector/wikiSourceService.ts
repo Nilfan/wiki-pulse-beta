@@ -89,6 +89,10 @@ class WikiSourceService {
         readyState: this.eventSource?.readyState,
         reconnectAttempt: this.reconnectAttempt,
       });
+
+      if (this.eventSource?.CLOSED) {
+        this.scheduleReconnect();
+      }
     };
 
     this.eventSource.onopen = () => {
@@ -169,12 +173,24 @@ class WikiSourceService {
   }
 
   private getPrismaClient() {
-    const pgUrl = process.env.PG_URL || LOCAL_PG_URL;
-    const isLocalLabel = pgUrl === LOCAL_PG_URL ? "local" : "env/prod";
+    const pgUrl = process.env.DATABASE_URL || LOCAL_PG_URL;
+
+    const isLocal = pgUrl === LOCAL_PG_URL;
+    const isLocalLabel = isLocal ? "local" : "env/prod";
     console.log(`[WikiSourceService] PG_URL: ${isLocalLabel} url`);
-    const pool = new Pool({
-      connectionString: pgUrl,
-    });
+    let pool: Pool;
+    if (isLocal) {
+      pool = new Pool({
+        connectionString: pgUrl,
+      });
+    } else {
+      pool = new Pool({
+        connectionString: pgUrl,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      });
+    }
     const adapter = new PrismaPg(pool);
     const prismaClient = new PrismaClient({ adapter });
 
