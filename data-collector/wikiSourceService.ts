@@ -15,7 +15,7 @@ type WikiEvent = Pick<
 
 const LOCAL_PG_URL = "postgresql://postgres:postgres@localhost:5432/nextjs_dev";
 const EVENT_SOURCE_URL = "https://stream.wikimedia.org/v2/stream/recentchange";
-const SAMPLE_RATE = 3000;
+const SAMPLE_RATE = 2000;
 const MAX_BATCH_CAPACITY = 350;
 const FLUSH_TIMEOUT_SEC = 60 * 5; // 5 min
 
@@ -43,7 +43,9 @@ class WikiSourceService {
       maxBatchCapacity: MAX_BATCH_CAPACITY,
     },
   ) {
-    console.log(`[WikiSourceService] Open event channel`);
+    console.log(
+      `[WikiSourceService] Open event channel, sample rate 1/${SAMPLE_RATE}`,
+    );
     const wikiOrgId = this.wikiOrg?.id;
 
     const flushTimeoutSec = options?.flushTimeoutSec || FLUSH_TIMEOUT_SEC;
