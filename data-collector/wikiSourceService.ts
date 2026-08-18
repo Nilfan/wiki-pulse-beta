@@ -15,8 +15,8 @@ type WikiEvent = Pick<
 
 const LOCAL_PG_URL = "postgresql://postgres:postgres@localhost:5432/nextjs_dev";
 const EVENT_SOURCE_URL = "https://stream.wikimedia.org/v2/stream/recentchange";
-const SAMPLE_RATE = 2000;
-const MAX_BATCH_CAPACITY = 350;
+const SAMPLE_RATE = 70;
+const MAX_BATCH_CAPACITY = 200;
 const FLUSH_TIMEOUT_SEC = 60 * 5; // 5 min
 
 type EventChannelConfig = {
@@ -127,7 +127,7 @@ class WikiSourceService {
       };
       const isInSampleRate = oneIn(SAMPLE_RATE);
 
-      if (isInSampleRate) {
+      if (isInSampleRate && maxBatchCapacity > this.eventBatch.length) {
         this.eventBatch.push(event);
         console.log(
           `[WikiSourceService] Add to batch: ${this.eventBatch.length}/${maxBatchCapacity}`,
@@ -135,10 +135,9 @@ class WikiSourceService {
       }
 
       const isFlushTimeoutHappen =
-        flushTimeoutSec !== undefined &&
         Date.now() - lastFlushTime > flushTimeoutSec * 1000;
 
-      if (maxBatchCapacity === this.eventBatch.length || isFlushTimeoutHappen) {
+      if (isFlushTimeoutHappen) {
         lastFlushTime = Date.now();
         const date = new Date(lastFlushTime);
         const flushTime = this.getTime(date);
