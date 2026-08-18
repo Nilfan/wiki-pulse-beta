@@ -7,6 +7,12 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { getLanguageFromServerUrl } from "./get-language-from-server-url.ts";
 import { oneIn } from "./random-int.ts";
+import {
+  log,
+  getErrorText,
+  error,
+  getTime,
+} from "./wiki-source-service-helpers.ts";
 
 type WikiEvent = Pick<
   Prisma.EventCreateInput,
@@ -29,6 +35,7 @@ class WikiSourceService {
   wikiOrg: Prisma.OrganizationCreateInput | null = null;
   eventSource?: EventSource;
   eventBatch: WikiEvent[] = [];
+  lastFlushTime: number | undefined;
 
   private reconnectAttempt = 0;
   private reconnectTimer?: NodeJS.Timeout;
@@ -43,9 +50,7 @@ class WikiSourceService {
       maxBatchCapacity: MAX_BATCH_CAPACITY,
     },
   ) {
-    this.log(
-      `[WikiSourceService] Open event channel, sample rate 1/${SAMPLE_RATE}`,
-    );
+    log(`[WikiSourceService] Open event channel, sample rate 1/${SAMPLE_RATE}`);
     const wikiOrgId = this.wikiOrg?.id;
 
     const flushTimeoutSec = options?.flushTimeoutSec || FLUSH_TIMEOUT_SEC;
@@ -53,7 +58,7 @@ class WikiSourceService {
 
     if (this.wikiOrg === null || !wikiOrgId) {
       throw new Error(
-        `${this.getCurrentTime()} [WikiSourceService] Wiki org must be defined on channel opening`,
+        getErrorText("Wiki org must be defined on channel opening"),
       );
     }
 
@@ -71,7 +76,7 @@ class WikiSourceService {
         });
 
         if (response.status === 429) {
-          this.error("[WikiSourceService] Rate limited", {
+          error("[WikiSourceService] Rate limited", {
             retryAfter: response.headers.get("retry-after"),
             requestId: response.headers.get("x-request-id"),
           });
@@ -80,12 +85,13 @@ class WikiSourceService {
         return response;
       },
     });
-    let lastFlushTime = Date.now();
 
-    this.log(`[WikiSourceService] Listen to event channel`);
+    this.lastFlushTime ??= Date.now();
+
+    log(`[WikiSourceService] Listen to event channel`);
 
     this.eventSource.onerror = (err) => {
-      this.error("[WikiSourceService] SSE connection failed", {
+      error("[WikiSourceService] SSE connection failed", {
         code: err.code,
         message: err.message,
         readyState: this.eventSource?.readyState,
@@ -98,7 +104,7 @@ class WikiSourceService {
     };
 
     this.eventSource.onopen = () => {
-      this.log(`Connection reopened, attempt: ${this.reconnectAttempt}`);
+      log(`Connection reopened, attempt: ${this.reconnectAttempt}`);
       this.reconnectAttempt = 0;
     };
 
@@ -127,20 +133,24 @@ class WikiSourceService {
 
       if (isInSampleRate && maxBatchCapacity > this.eventBatch.length) {
         this.eventBatch.push(event);
-        this.log(`Add to batch: ${this.eventBatch.length}/${maxBatchCapacity}`);
+        log(`Add to batch: ${this.eventBatch.length}/${maxBatchCapacity}`);
+      }
+
+      if (this.lastFlushTime === undefined) {
+        throw new Error(getErrorText("lastFlushTime must be defined"));
       }
 
       const isFlushTimeoutHappen =
-        Date.now() - lastFlushTime > flushTimeoutSec * 1000;
+        Date.now() - this.lastFlushTime > flushTimeoutSec * 1000;
 
       if (isFlushTimeoutHappen) {
-        lastFlushTime = Date.now();
-        const date = new Date(lastFlushTime);
-        const flushTime = this.getTime(date);
+        this.lastFlushTime = Date.now();
+        const date = new Date(this.lastFlushTime);
+        const flushTime = getTime(date);
 
-        this.log(`[WikiSourceService] Flush events: ${flushTime}`);
+        log(`[WikiSourceService] Flush events: ${flushTime}`);
         this.flushEvents(wikiOrgId, [...this.eventBatch]).catch((err) => {
-          this.log(`[WikiSourceService] Error on flush events: ${err}`);
+          log(`[WikiSourceService] Error on flush events: ${err}`);
         });
         this.eventBatch = [];
       }
@@ -176,7 +186,7 @@ class WikiSourceService {
 
     const isLocal = pgUrl === LOCAL_PG_URL;
     const isLocalLabel = isLocal ? "local" : "env/prod";
-    this.log(`PG_URL: ${isLocalLabel} url`);
+    log(`PG_URL: ${isLocalLabel} url`);
     let pool: Pool;
     if (isLocal) {
       pool = new Pool({
@@ -212,31 +222,6 @@ class WikiSourceService {
 
       Deno.exit(0);
     });
-  }
-
-  private log(text: string) {
-    console.log(`${this.getCurrentTime()} [WikiSourceService] ${text}`);
-  }
-
-  private error(text: string, additional: any) {
-    console.error(
-      `${this.getCurrentTime()} [WikiSourceService] ${text}`,
-      additional,
-    );
-  }
-
-  private getTwoDigits(num: number) {
-    return `${num}`.length < 2 ? `0${num}` : `${num}`;
-  }
-
-  private getTime(date: Date) {
-    return `${this.getTwoDigits(date.getHours())}:${this.getTwoDigits(date.getMinutes())}:${this.getTwoDigits(date.getSeconds())} ${this.getTwoDigits(date.getDate())}/${this.getTwoDigits(date.getMonth())}/${date.getFullYear()}`;
-  }
-
-  private getCurrentTime() {
-    const date = new Date();
-
-    return this.getTime(date);
   }
 
   private scheduleReconnect() {
