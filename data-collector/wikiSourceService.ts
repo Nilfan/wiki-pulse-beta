@@ -43,7 +43,7 @@ class WikiSourceService {
       maxBatchCapacity: MAX_BATCH_CAPACITY,
     },
   ) {
-    console.log(
+    this.log(
       `[WikiSourceService] Open event channel, sample rate 1/${SAMPLE_RATE}`,
     );
     const wikiOrgId = this.wikiOrg?.id;
@@ -53,7 +53,7 @@ class WikiSourceService {
 
     if (this.wikiOrg === null || !wikiOrgId) {
       throw new Error(
-        "[WikiSourceService] Wiki org must be defined on channel opening",
+        `${this.getCurrentTime()} [WikiSourceService] Wiki org must be defined on channel opening`,
       );
     }
 
@@ -71,7 +71,7 @@ class WikiSourceService {
         });
 
         if (response.status === 429) {
-          console.error("[WikiSourceService] Rate limited", {
+          this.error("[WikiSourceService] Rate limited", {
             retryAfter: response.headers.get("retry-after"),
             requestId: response.headers.get("x-request-id"),
           });
@@ -82,10 +82,10 @@ class WikiSourceService {
     });
     let lastFlushTime = Date.now();
 
-    console.log(`[WikiSourceService] Listen to event channel`);
+    this.log(`[WikiSourceService] Listen to event channel`);
 
     this.eventSource.onerror = (err) => {
-      console.error("[WikiSourceService] SSE connection failed", {
+      this.error("[WikiSourceService] SSE connection failed", {
         code: err.code,
         message: err.message,
         readyState: this.eventSource?.readyState,
@@ -98,9 +98,7 @@ class WikiSourceService {
     };
 
     this.eventSource.onopen = () => {
-      console.log(
-        `[WikiSourceService] Connection reopened, attempt: ${this.reconnectAttempt}`,
-      );
+      this.log(`Connection reopened, attempt: ${this.reconnectAttempt}`);
       this.reconnectAttempt = 0;
     };
 
@@ -129,9 +127,7 @@ class WikiSourceService {
 
       if (isInSampleRate && maxBatchCapacity > this.eventBatch.length) {
         this.eventBatch.push(event);
-        console.log(
-          `[WikiSourceService] Add to batch: ${this.eventBatch.length}/${maxBatchCapacity}`,
-        );
+        this.log(`Add to batch: ${this.eventBatch.length}/${maxBatchCapacity}`);
       }
 
       const isFlushTimeoutHappen =
@@ -142,9 +138,9 @@ class WikiSourceService {
         const date = new Date(lastFlushTime);
         const flushTime = this.getTime(date);
 
-        console.log("[WikiSourceService] Flush events: ", flushTime);
+        this.log(`[WikiSourceService] Flush events: ${flushTime}`);
         this.flushEvents(wikiOrgId, [...this.eventBatch]).catch((err) => {
-          console.log(`[WikiSourceService] Error on flush events: ${err}`);
+          this.log(`[WikiSourceService] Error on flush events: ${err}`);
         });
         this.eventBatch = [];
       }
@@ -180,7 +176,7 @@ class WikiSourceService {
 
     const isLocal = pgUrl === LOCAL_PG_URL;
     const isLocalLabel = isLocal ? "local" : "env/prod";
-    console.log(`[WikiSourceService] PG_URL: ${isLocalLabel} url`);
+    this.log(`PG_URL: ${isLocalLabel} url`);
     let pool: Pool;
     if (isLocal) {
       pool = new Pool({
@@ -218,12 +214,29 @@ class WikiSourceService {
     });
   }
 
+  private log(text: string) {
+    console.log(`${this.getCurrentTime()} [WikiSourceService] ${text}`);
+  }
+
+  private error(text: string, additional: any) {
+    console.error(
+      `${this.getCurrentTime()} [WikiSourceService] ${text}`,
+      additional,
+    );
+  }
+
   private getTwoDigits(num: number) {
     return `${num}`.length < 2 ? `0${num}` : `${num}`;
   }
 
   private getTime(date: Date) {
     return `${this.getTwoDigits(date.getHours())}:${this.getTwoDigits(date.getMinutes())}:${this.getTwoDigits(date.getSeconds())} ${this.getTwoDigits(date.getDate())}/${this.getTwoDigits(date.getMonth())}/${date.getFullYear()}`;
+  }
+
+  private getCurrentTime() {
+    const date = new Date();
+
+    return this.getTime(date);
   }
 
   private scheduleReconnect() {
