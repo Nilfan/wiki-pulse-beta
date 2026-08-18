@@ -12,14 +12,18 @@ export function getCurrentTime() {
   return getTime(date);
 }
 
-export function log(text: string) {
-  console.log(`${getCurrentTime()} [WikiSourceService] ${text}`);
-}
-
-export function error(text: string, additional: unknown) {
-  console.error(`${getCurrentTime()} [WikiSourceService] ${text}`, additional);
+function getLogPrefix() {
+  return `${getCurrentTime()} [WikiSourceService]`;
 }
 
 export function getErrorText(text: string) {
-  return `${getCurrentTime()} [WikiSourceService] ${text}`;
+  return `${getLogPrefix()} ${text}`;
+}
+
+export function log(text: string) {
+  console.log(`${getLogPrefix()} ${text}`);
+}
+
+export function error(text: string, additional: unknown) {
+  console.error(`${getLogPrefix()} ${text}`, additional);
 }

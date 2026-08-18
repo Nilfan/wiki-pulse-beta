@@ -3,8 +3,7 @@
 import { EventSource } from "eventsource";
 import { WIKI_ORG } from "../prisma/constants.ts";
 import { Prisma, PrismaClient } from "../generated/prisma/client.ts";
-import { PrismaPg } from "@prisma/adapter-pg";
-import { Pool } from "pg";
+
 import { getLanguageFromServerUrl } from "./get-language-from-server-url.ts";
 import { oneIn } from "./random-int.ts";
 import {
@@ -13,22 +12,18 @@ import {
   error,
   getTime,
 } from "./wiki-source-service-helpers.ts";
+import { getPrismaClient } from "./get-prisma-client.ts";
 
 type WikiEvent = Pick<
   Prisma.EventCreateInput,
   "type" | "host" | "timestamp" | "path" | "country" | "properties"
 >;
 
-const LOCAL_PG_URL = "postgresql://postgres:postgres@localhost:5432/nextjs_dev";
 const EVENT_SOURCE_URL = "https://stream.wikimedia.org/v2/stream/recentchange";
-const SAMPLE_RATE = 70;
+const SAMPLE_RATE = 30;
 const MAX_BATCH_CAPACITY = 200;
-const FLUSH_TIMEOUT_SEC = 60 * 5; // 5 min
-
-type EventChannelConfig = {
-  maxBatchCapacity?: number;
-  flushTimeoutSec?: number;
-};
+const BATCH_ADD_THROTTLE_MS = 1700; // ~ 1000/0.6ms
+const FLUSH_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
 
 class WikiSourceService {
   prismaClient: PrismaClient;
@@ -36,25 +31,18 @@ class WikiSourceService {
   eventSource?: EventSource;
   eventBatch: WikiEvent[] = [];
   lastFlushTime: number | undefined;
+  lastBatchAddTime: number | undefined;
 
   private reconnectAttempt = 0;
   private reconnectTimer?: NodeJS.Timeout;
 
   constructor() {
-    this.prismaClient = this.getPrismaClient();
+    this.prismaClient = getPrismaClient();
   }
 
-  openEventChannel(
-    options: EventChannelConfig = {
-      flushTimeoutSec: FLUSH_TIMEOUT_SEC,
-      maxBatchCapacity: MAX_BATCH_CAPACITY,
-    },
-  ) {
-    log(`[WikiSourceService] Open event channel, sample rate 1/${SAMPLE_RATE}`);
+  openEventChannel() {
+    log(`Open event channel, sample rate 1/${SAMPLE_RATE}`);
     const wikiOrgId = this.wikiOrg?.id;
-
-    const flushTimeoutSec = options?.flushTimeoutSec || FLUSH_TIMEOUT_SEC;
-    const maxBatchCapacity = options?.maxBatchCapacity || MAX_BATCH_CAPACITY;
 
     if (this.wikiOrg === null || !wikiOrgId) {
       throw new Error(
@@ -76,7 +64,7 @@ class WikiSourceService {
         });
 
         if (response.status === 429) {
-          error("[WikiSourceService] Rate limited", {
+          error("Rate limited", {
             retryAfter: response.headers.get("retry-after"),
             requestId: response.headers.get("x-request-id"),
           });
@@ -88,10 +76,10 @@ class WikiSourceService {
 
     this.lastFlushTime ??= Date.now();
 
-    log(`[WikiSourceService] Listen to event channel`);
+    log(`Listen to event channel`);
 
     this.eventSource.onerror = (err) => {
-      error("[WikiSourceService] SSE connection failed", {
+      error("SSE connection failed", {
         code: err.code,
         message: err.message,
         readyState: this.eventSource?.readyState,
@@ -109,55 +97,75 @@ class WikiSourceService {
     };
 
     this.eventSource.onmessage = (rawEvent) => {
-      const {
-        type,
-        title,
-        title_url,
-        server_url,
-        dt: timestamp,
-      } = JSON.parse(rawEvent.data);
-
-      const path = title_url.replace(server_url, "");
-      const country = getLanguageFromServerUrl(server_url);
-
-      const properties = JSON.stringify({ title });
-      const event: WikiEvent = {
-        type,
-        properties,
-        path,
-        host: server_url,
-        country,
-        timestamp,
-      };
-      const isInSampleRate = oneIn(SAMPLE_RATE);
-
-      if (isInSampleRate && maxBatchCapacity > this.eventBatch.length) {
-        this.eventBatch.push(event);
-        log(`Add to batch: ${this.eventBatch.length}/${maxBatchCapacity}`);
-      }
-
-      if (this.lastFlushTime === undefined) {
-        throw new Error(getErrorText("lastFlushTime must be defined"));
-      }
-
-      const isFlushTimeoutHappen =
-        Date.now() - this.lastFlushTime > flushTimeoutSec * 1000;
-
-      if (isFlushTimeoutHappen) {
-        this.lastFlushTime = Date.now();
-        const date = new Date(this.lastFlushTime);
-        const flushTime = getTime(date);
-
-        log(`[WikiSourceService] Flush events: ${flushTime}`);
-        this.flushEvents(wikiOrgId, [...this.eventBatch]).catch((err) => {
-          log(`[WikiSourceService] Error on flush events: ${err}`);
-        });
-        this.eventBatch = [];
-      }
+      this.flushEventsOnMessage();
+      this.addEventToBatchOnMessage(rawEvent);
     };
   }
 
-  async flushEvents(orgId: number | bigint, events: WikiEvent[]) {
+  private flushEventsOnMessage() {
+    if (this.lastFlushTime === undefined) {
+      throw new Error(getErrorText("lastFlushTime must be defined"));
+    }
+
+    const isFlushTimeoutHappen =
+      Date.now() - this.lastFlushTime > FLUSH_TIMEOUT_MS;
+
+    if (isFlushTimeoutHappen) {
+      this.lastFlushTime = Date.now();
+      const date = new Date(this.lastFlushTime);
+      const flushTime = getTime(date);
+
+      log(`Flush events: ${flushTime}`);
+      this.flushEvents(this.wikiOrg?.id, [...this.eventBatch]).catch((err) => {
+        log(`Error on flush events: ${err}`);
+      });
+      this.eventBatch = [];
+    }
+  }
+
+  private addEventToBatchOnMessage(rawEvent: MessageEvent) {
+    const isInSampleRate = oneIn(SAMPLE_RATE);
+
+    if (!isInSampleRate || MAX_BATCH_CAPACITY <= this.eventBatch.length) {
+      return;
+    }
+
+    const eventAppearanceTime = Date.now();
+
+    if (
+      this.lastBatchAddTime !== undefined &&
+      eventAppearanceTime - this.lastBatchAddTime < BATCH_ADD_THROTTLE_MS
+    ) {
+      return;
+    }
+
+    const {
+      type,
+      title,
+      title_url,
+      server_url,
+      dt: timestamp,
+    } = JSON.parse(rawEvent.data);
+
+    const path = title_url.replace(server_url, "");
+    const country = getLanguageFromServerUrl(server_url);
+
+    const properties = JSON.stringify({ title });
+    const event: WikiEvent = {
+      type,
+      properties,
+      path,
+      host: server_url,
+      country,
+      timestamp,
+    };
+
+    this.eventBatch.push(event);
+    this.lastBatchAddTime = eventAppearanceTime;
+    log(`Add to batch: ${this.eventBatch.length}/${MAX_BATCH_CAPACITY}`);
+  }
+
+  private async flushEvents(orgId: number | bigint, events: WikiEvent[]) {
     const eventInstants: Prisma.EventUncheckedCreateInput[] = events.map(
       (event) => ({
         ...event,
@@ -179,31 +187,7 @@ class WikiSourceService {
 
   async init() {
     await this.initWikiOrg();
-  }
-
-  private getPrismaClient() {
-    const pgUrl = process.env.DATABASE_URL || LOCAL_PG_URL;
-
-    const isLocal = pgUrl === LOCAL_PG_URL;
-    const isLocalLabel = isLocal ? "local" : "env/prod";
-    log(`PG_URL: ${isLocalLabel} url`);
-    let pool: Pool;
-    if (isLocal) {
-      pool = new Pool({
-        connectionString: pgUrl,
-      });
-    } else {
-      pool = new Pool({
-        connectionString: pgUrl,
-        ssl: {
-          rejectUnauthorized: false,
-        },
-      });
-    }
-    const adapter = new PrismaPg(pool);
-    const prismaClient = new PrismaClient({ adapter });
-
-    return prismaClient;
+    this.subscribeDenoSignal();
   }
 
   async initWikiOrg() {
