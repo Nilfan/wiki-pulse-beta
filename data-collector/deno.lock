@@ -23,8 +23,12 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:cd@~0.3.3",
-        "npm:eventsource@^4.1.0"
+        "npm:@prisma/adapter-pg@^7.8.0",
+        "npm:@prisma/client@^7.8.0",
+        "npm:@types/node@20",
+        "npm:@types/pg@^8.20.0",
+        "npm:eventsource@^4.1.0",
+        "npm:pg@^8.21.0"
       ]
     }
   }
