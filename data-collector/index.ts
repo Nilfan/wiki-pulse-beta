@@ -1,4 +1,5 @@
+import { intervalDbCleaner } from "./intervalDbCleaner.ts";
 import { wikiSourceService } from "./wikiSourceService.ts";
 
-await wikiSourceService.init();
 wikiSourceService.openEventChannel();
+intervalDbCleaner.scheduleIntervalCleaning();

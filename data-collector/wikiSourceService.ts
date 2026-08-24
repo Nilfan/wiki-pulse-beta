@@ -24,6 +24,8 @@ const SAMPLE_RATE = 30;
 const MAX_BATCH_CAPACITY = 200;
 const BATCH_ADD_THROTTLE_MS = 1700; // ~ 1000/0.6ms
 const FLUSH_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
+const EVENT_IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 min
+const HEALTH_CHECK_INTERVAL_MS = 15 * 1000; // 15 sec
 
 class WikiSourceService {
   prismaClient: PrismaClient;
@@ -34,7 +36,9 @@ class WikiSourceService {
   lastBatchAddTime: number | undefined;
 
   private reconnectAttempt = 0;
-  private reconnectTimer?: NodeJS.Timeout;
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
+  private healthCheckTimer?: ReturnType<typeof setInterval>;
+  private lastEventReceivedAt?: number;
 
   constructor() {
     this.prismaClient = getPrismaClient();
@@ -54,7 +58,7 @@ class WikiSourceService {
       this.closeEventChannel();
     }
 
-    this.eventSource = new EventSource(EVENT_SOURCE_URL, {
+    const eventSource = new EventSource(EVENT_SOURCE_URL, {
       fetch: async (input, init) => {
         const response = await fetch(input, {
           ...init,
@@ -73,30 +77,47 @@ class WikiSourceService {
         return response;
       },
     });
+    this.eventSource = eventSource;
+    this.lastEventReceivedAt = Date.now();
+    this.startHealthCheck(eventSource);
 
     this.lastFlushTime ??= Date.now();
 
     log(`Listen to event channel`);
 
-    this.eventSource.onerror = (err) => {
+    eventSource.onerror = (err) => {
+      if (this.eventSource !== eventSource) {
+        return;
+      }
+
       error("SSE connection failed", {
         code: err.code,
         message: err.message,
-        readyState: this.eventSource?.readyState,
+        readyState: eventSource.readyState,
         reconnectAttempt: this.reconnectAttempt,
       });
 
-      if (this.eventSource?.CLOSED) {
+      if (eventSource.readyState === EventSource.CLOSED) {
         this.scheduleReconnect();
       }
     };
 
-    this.eventSource.onopen = () => {
+    eventSource.onopen = () => {
+      if (this.eventSource !== eventSource) {
+        return;
+      }
+
       log(`Connection reopened, attempt: ${this.reconnectAttempt}`);
       this.reconnectAttempt = 0;
+      this.lastEventReceivedAt = Date.now();
     };
 
-    this.eventSource.onmessage = (rawEvent) => {
+    eventSource.onmessage = (rawEvent) => {
+      if (this.eventSource !== eventSource) {
+        return;
+      }
+
+      this.lastEventReceivedAt = Date.now();
       this.flushEventsOnMessage();
       this.addEventToBatchOnMessage(rawEvent);
     };
@@ -105,6 +126,12 @@ class WikiSourceService {
   private flushEventsOnMessage() {
     if (this.lastFlushTime === undefined) {
       throw new Error(getErrorText("lastFlushTime must be defined"));
+    }
+
+    const wikiOrgId = this.wikiOrg?.id;
+
+    if (!wikiOrgId) {
+      throw new Error(getErrorText("Wiki org must be defined on flush"));
     }
 
     const isFlushTimeoutHappen =
@@ -116,7 +143,7 @@ class WikiSourceService {
       const flushTime = getTime(date);
 
       log(`Flush events: ${flushTime}`);
-      this.flushEvents(this.wikiOrg?.id, [...this.eventBatch]).catch((err) => {
+      this.flushEvents(wikiOrgId, [...this.eventBatch]).catch((err) => {
         log(`Error on flush events: ${err}`);
       });
       this.eventBatch = [];
@@ -179,10 +206,22 @@ class WikiSourceService {
   }
 
   closeEventChannel() {
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = undefined;
+    }
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
+
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = undefined;
     }
+
+    this.lastEventReceivedAt = undefined;
   }
 
   async init() {
@@ -209,6 +248,12 @@ class WikiSourceService {
   }
 
   private scheduleReconnect() {
+    if (this.reconnectTimer) {
+      return;
+    }
+
+    this.closeEventChannel();
+
     const baseDelay = 5 * 1000; // 5 sec
     const maxDelay = 5 * 60 * 1000; // 5 min
 
@@ -224,9 +269,37 @@ class WikiSourceService {
     this.reconnectAttempt += 1;
 
     this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
       this.openEventChannel();
     }, delay);
   }
+
+  private startHealthCheck(eventSource: EventSource) {
+    this.healthCheckTimer = setInterval(() => {
+      if (
+        this.eventSource !== eventSource ||
+        this.lastEventReceivedAt === undefined
+      ) {
+        return;
+      }
+
+      const idleTime = Date.now() - this.lastEventReceivedAt;
+
+      if (idleTime <= EVENT_IDLE_TIMEOUT_MS) {
+        return;
+      }
+
+      error("SSE event stream is stale, recreating connection", {
+        idleTime,
+        readyState: eventSource.readyState,
+      });
+
+      this.openEventChannel();
+    }, HEALTH_CHECK_INTERVAL_MS);
+  }
 }
 
-export const wikiSourceService = new WikiSourceService();
+const wikiSourceService = new WikiSourceService();
+await wikiSourceService.init();
+
+export { wikiSourceService };
