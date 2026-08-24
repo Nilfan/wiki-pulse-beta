@@ -16,7 +16,8 @@
         "run",
         "--inspect-wait",
         "--allow-all",
-        "--sloppy-imports"
+        "--sloppy-imports",
+        "--env-file"
       ],
       "attachSimplePort": 9229
     }

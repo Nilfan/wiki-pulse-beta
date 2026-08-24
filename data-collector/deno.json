@@ -1,0 +1,7 @@
+{
+  "nodeModulesDir": "manual",
+  "unstable": ["sloppy-imports"],
+  "compilerOptions": {
+    "strict": true
+  }
+}
