@@ -20,7 +20,7 @@ class IntervalDbCleaner {
         Date.now() - CLEARANCE_DB_PERIOD_DAYS * 24 * 60 * 60 * 1000,
       );
       this.prismaClient.event
-        .count({
+        .deleteMany({
           where: {
             timestamp: {
               lt: periodStartDate,
