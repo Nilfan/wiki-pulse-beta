@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import ChartWrapper from "./components/chart/ChartWrapper";
+import SkeletonChart from "./components/chart/SkeletonChart";
 import DashboardFilters from "./components/DashboardFilters";
 import DashboardFiltersSkeleton from "./components/DashboardFiltersSkeleton";
 import DashboardTable from "./components/DashboardTable";
@@ -13,11 +14,11 @@ export default function DashboardPage({ searchParams }: DashboardPageProps) {
     <>
       <section>
         <Suspense fallback={<DashboardFiltersSkeleton />}>
-          <DashboardFilters searchParams={searchParams} />
+          <DashboardFilters />
         </Suspense>
       </section>
       <section>
-        <Suspense fallback={<>Please, wait for Chart</>}>
+        <Suspense fallback={<SkeletonChart />}>
           <ChartWrapper searchParams={searchParams} />
         </Suspense>
       </section>

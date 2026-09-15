@@ -45,6 +45,9 @@ importers:
         specifier: ^1.4.1
         version: 1.4.1(typescript@5.9.3)
     devDependencies:
+      '@recharts/devtools':
+        specifier: ^0.0.18
+        version: 0.0.18(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(recharts@3.10.1(@types/react@19.2.15)(react-dom@19.2.4(react@19.2.4))(react-is@16.13.1)(react@19.2.4)(redux@5.0.1))
       '@tailwindcss/postcss':
         specifier: ^4
         version: 4.3.0
@@ -760,6 +763,13 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  '@recharts/devtools@0.0.18':
+    resolution: {integrity: sha512-8+jKlYvL8dh5cW3l+wuAPw6IS6ua3mHqgazWsk0QjeEYP5VwVWasyOgk7OONLss9CGIBWFLTIXHn9noMVRFKmA==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+      recharts: 3.9.0
 
   '@reduxjs/toolkit@2.12.0':
     resolution: {integrity: sha512-KiT+RzZbp6mQET+Mg+h2c97+9j1sNflUxQkIHI7Yuzf6Peu+OYpmkn6nbHWmLLWj+1ZODUJFwGZ7gx3L9R9EOw==}
@@ -3336,6 +3346,12 @@ snapshots:
       react: 19.2.4
     optionalDependencies:
       '@types/react': 19.2.15
+
+  '@recharts/devtools@0.0.18(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(recharts@3.10.1(@types/react@19.2.15)(react-dom@19.2.4(react@19.2.4))(react-is@16.13.1)(react@19.2.4)(redux@5.0.1))':
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      recharts: 3.10.1(@types/react@19.2.15)(react-dom@19.2.4(react@19.2.4))(react-is@16.13.1)(react@19.2.4)(redux@5.0.1)
 
   '@reduxjs/toolkit@2.12.0(react-redux@9.3.0(@types/react@19.2.15)(react@19.2.4)(redux@5.0.1))(react@19.2.4)':
     dependencies:

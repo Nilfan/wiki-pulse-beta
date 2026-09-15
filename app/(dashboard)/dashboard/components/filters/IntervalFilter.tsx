@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import FilterBaseButton, { type FilterOption } from "./FilterBaseButton";
+import useDashboardFilter from "./useDashboardFilter";
 
 const OPTIONS = [
   { value: "5m", label: "5 min" },
@@ -14,21 +14,13 @@ const OPTIONS = [
   },
 ] as const satisfies readonly FilterOption[];
 
-type IntervalFilterProps = {
-  interval: string;
-};
-
-export default function IntervalFilter({ interval }: IntervalFilterProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function IntervalFilter() {
+  const [interval, setInterval] = useDashboardFilter<string>({
+    name: "interval",
+    defaultValue: "15m",
+    validValues: OPTIONS.map((option) => option.value),
+  });
   const selectedInterval = OPTIONS.find((option) => option.value === interval);
-
-  function updateInterval(nextInterval: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("interval", nextInterval);
-    router.replace(`${pathname}?${params.toString()}`);
-  }
 
   return (
     <FilterBaseButton
@@ -40,9 +32,7 @@ export default function IntervalFilter({ interval }: IntervalFilterProps) {
       }
       selectedValues={[interval]}
       options={OPTIONS}
-      onValueChange={([nextInterval]) =>
-        updateInterval(nextInterval ?? interval)
-      }
+      onValueChange={([nextInterval]) => setInterval(nextInterval ?? interval)}
       menuLabel="Interval granularity"
       menuHeader="GRANULARITY · date_trunc"
     />

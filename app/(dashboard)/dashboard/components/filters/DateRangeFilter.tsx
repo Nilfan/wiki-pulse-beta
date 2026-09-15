@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import FilterBaseButton, { type FilterOption } from "./FilterBaseButton";
+import useDashboardFilter from "./useDashboardFilter";
 
 const OPTIONS = [
   { value: "15m", label: "15 min", description: "15 min" },
@@ -17,21 +17,13 @@ const OPTIONS = [
   { value: "60d", label: "60 days", description: "Test " },
 ] as const satisfies readonly FilterOption[];
 
-type DateRangeFilterProps = {
-  range: string;
-};
-
-export default function DateRangeFilter({ range }: DateRangeFilterProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export default function DateRangeFilter() {
+  const [range, setRange] = useDashboardFilter<string>({
+    name: "range",
+    defaultValue: "24h",
+    validValues: OPTIONS.map((option) => option.value),
+  });
   const selectedRange = OPTIONS.find((option) => option.value === range);
-
-  function updateRange(nextRange: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("range", nextRange);
-    router.replace(`${pathname}?${params.toString()}`);
-  }
 
   return (
     <FilterBaseButton
@@ -39,7 +31,7 @@ export default function DateRangeFilter({ range }: DateRangeFilterProps) {
       value={selectedRange?.label ?? range}
       selectedValues={[range]}
       options={OPTIONS}
-      onValueChange={([nextRange]) => updateRange(nextRange ?? range)}
+      onValueChange={([nextRange]) => setRange(nextRange ?? range)}
       menuLabel="Date range"
     />
   );

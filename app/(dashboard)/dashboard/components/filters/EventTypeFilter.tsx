@@ -1,35 +1,27 @@
 "use client";
 
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import FilterBaseButton, { type FilterOption } from "./FilterBaseButton";
-
-const OPTIONS = [
-  { value: "pageview", label: "Page views" },
-  { value: "click", label: "Clicks" },
-  { value: "custom", label: "Custom events" },
-] as const satisfies readonly FilterOption[];
+import useDashboardFilter from "./useDashboardFilter";
 
 type EventTypeFilterProps = {
-  eventTypes: string[];
+  availableEventTypes: string[];
 };
+export default function EventTypeFilter({
+  availableEventTypes = [],
+}: EventTypeFilterProps) {
+  const [eventTypes, setEventTypes] = useDashboardFilter<string[]>({
+    name: "eventType",
+    defaultValue: [],
+    validValues: availableEventTypes,
+  });
+  const options: FilterOption[] = availableEventTypes.map((eventType) => ({
+    value: eventType,
+    label: eventType,
+  }));
 
-export default function EventTypeFilter({ eventTypes }: EventTypeFilterProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const selectedEventTypes = OPTIONS.filter((option) =>
+  const selectedEventTypes = options.filter((option) =>
     eventTypes.includes(option.value),
   );
-
-  function updateEventTypes(nextEventTypes: string[]) {
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete("eventType");
-    nextEventTypes.forEach((eventType) =>
-      params.append("eventType", eventType),
-    );
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  }
 
   return (
     <FilterBaseButton
@@ -40,8 +32,8 @@ export default function EventTypeFilter({ eventTypes }: EventTypeFilterProps) {
           : "All events"
       }
       selectedValues={eventTypes}
-      options={OPTIONS}
-      onValueChange={updateEventTypes}
+      options={options}
+      onValueChange={setEventTypes}
       menuLabel="Event type"
       multiple
     />
