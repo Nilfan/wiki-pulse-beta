@@ -4,7 +4,7 @@ import clsx from "clsx";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export default function ControlTab({
+export function ControlTab({
   title,
   link,
   prefetch = false,

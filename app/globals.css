@@ -38,6 +38,19 @@
   --color-signal: #2b4fe8;
   --color-live: #e8452b;
   --color-shell: #ffffff;
+
+  --color-card: #ffffff;
+  --color-ink-2: #5c5c63;
+  --color-ink-3: #8e8e96;
+  --color-hair: #d5d5ce;
+  --color-brand: #e5484d;
+
+  --color-dash-event-1: #8a1f2e;
+  --color-dash-event-2: #b25c64;
+  --color-dash-event-3: #d9a3a6;
+  --color-dash-event-4: #f4e6e6;
+  --alert: #a66a00;
+
   --color-header-bg: rgba(231, 234, 229, 0.88);
   --color-cell-border: rgba(22, 24, 27, 0.045);
 
@@ -46,7 +59,7 @@
   --animate-feed-row-slidein: slidein 0.34s ease-out;
 
   --font-display: var(--font-martian);
-  --font-body: var(--font-inter-tight);
+  --font-body: var(--font-jetbrains);
   --font-data: var(--font-jetbrains);
 
   @keyframes beat {
