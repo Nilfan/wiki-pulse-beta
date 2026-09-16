@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
-import { DURATION_MS, SERIES_ALIGNMENT_MS } from "./constants";
+import { DURATION_MS, MAX_SERIES, SERIES_ALIGNMENT_MS } from "./constants";
 import type {
   DashboardGroupBy,
   DashboardSearchParams,
@@ -45,6 +45,35 @@ export function toWirePoint(point: EventsSeriesPoint): EventsSeriesWirePoint {
     timestamp: point.timestamp.getTime(),
     count: point.count,
     group: point.group,
+  };
+}
+
+export type EventsSeries = {
+  /** Zero-filled points for the {@link MAX_SERIES} busiest groups only. */
+  points: EventsSeriesPoint[];
+  /** Every event in the window, including groups left out of `points`. */
+  total: number;
+  /** Groups in the window before the cap; 1 when nothing is grouped. */
+  groupCount: number;
+};
+
+/** What the chart receives, from the server render and the events route. */
+export type EventsSeriesWire = {
+  events: EventsSeriesWirePoint[];
+  total: number;
+  groupCount: number;
+  untilMs: number;
+};
+
+export function toEventsSeriesWire(
+  series: EventsSeries,
+  timeWindow: TimeWindow,
+): EventsSeriesWire {
+  return {
+    events: series.points.map(toWirePoint),
+    total: series.total,
+    groupCount: series.groupCount,
+    untilMs: timeWindow.until.getTime(),
   };
 }
 
@@ -99,6 +128,12 @@ type EventsSeriesRow = {
   timestamp: Date;
   group: EventsSeriesPoint["group"];
   count: number;
+};
+
+type EventsSeriesBuckets = {
+  rows: EventsSeriesRow[];
+  total: number;
+  groupCount: number;
 };
 
 /** Separators for the composite Map keys used while filling empty buckets. */
@@ -199,13 +234,19 @@ function fillEmptyBuckets(
 
 /**
  * Cached separately from the zero-filling so the cache entry holds the sparse
- * result: for groupBy=page over 24h that is ~8.7k rows instead of ~190k.
+ * result.
+ *
+ * Only the {@link MAX_SERIES} busiest groups come back — the chart could not
+ * draw the rest anyway, and shipping them is what used to blow up: groupBy=page
+ * over 24h zero-filled to ~250MB of JSON, and over 7d past V8's string limit.
+ * The window total and the group count are computed before the cut, so the
+ * headline figure and the legend's "n more" stay exact.
  */
 async function getEventsSeriesBuckets(
   orgId: string,
   params: DashboardSearchParams,
   timeWindow: TimeWindow,
-): Promise<EventsSeriesRow[]> {
+): Promise<EventsSeriesBuckets> {
   "use cache";
   cacheLife("minutes");
   cacheTag(`org:${orgId}`);
@@ -222,13 +263,18 @@ async function getEventsSeriesBuckets(
     Prisma.raw(`${GROUP_BY_SQL[groupBy]} AS "g_${groupBy}"`),
   );
   const groupColumns = params.groupBy.map((groupBy) =>
-    Prisma.raw(`b."g_${groupBy}"`),
+    Prisma.raw(`"g_${groupBy}"`),
   );
   const groupObjectArgs = params.groupBy.map((groupBy) =>
-    Prisma.raw(`'${groupBy}', b."g_${groupBy}"`),
+    Prisma.raw(`'${groupBy}', c."g_${groupBy}"`),
   );
+  const groupColumnList = hasGroups
+    ? Prisma.join(groupColumns, ", ")
+    : Prisma.empty;
 
-  return prisma.$queryRaw<EventsSeriesRow[]>`
+  const rows = await prisma.$queryRaw<
+    (EventsSeriesRow & { total: number; group_count: number })[]
+  >`
     WITH bucketed AS (
       SELECT
         ${until}::bigint - ceil(
@@ -241,22 +287,59 @@ async function getEventsSeriesBuckets(
         AND e."timestamp" >= to_timestamp(${since}::bigint / 1000.0) AT TIME ZONE 'UTC'
         AND e."timestamp" < to_timestamp(${until}::bigint / 1000.0) AT TIME ZONE 'UTC'
         ${params.eventType.length ? Prisma.sql`AND e."type" = ANY(${params.eventType}::text[])` : Prisma.empty}
+    ),
+    counted AS (
+      SELECT bucket_ms${hasGroups ? Prisma.sql`, ${groupColumnList}` : Prisma.empty}, count(*)::int AS "count"
+      FROM bucketed
+      GROUP BY bucket_ms${hasGroups ? Prisma.sql`, ${groupColumnList}` : Prisma.empty}
+    ),
+    group_totals AS (
+      SELECT ${hasGroups ? Prisma.sql`${groupColumnList}, ` : Prisma.empty}sum("count") AS total
+      FROM counted
+      ${hasGroups ? Prisma.sql`GROUP BY ${groupColumnList}` : Prisma.empty}
     )
+    ${
+      hasGroups
+        ? Prisma.sql`, top_groups AS (
+            SELECT ${groupColumnList}
+            FROM group_totals
+            ORDER BY total DESC, ${groupColumnList}
+            LIMIT ${MAX_SERIES}
+          )`
+        : Prisma.empty
+    }
     SELECT
-      to_timestamp(b.bucket_ms::double precision / 1000) AS "timestamp",
+      to_timestamp(c.bucket_ms::double precision / 1000) AS "timestamp",
       json_build_object(${hasGroups ? Prisma.join(groupObjectArgs, ", ") : Prisma.empty}) AS "group",
-      count(*)::int AS "count"
-    FROM bucketed b
-    GROUP BY b.bucket_ms${hasGroups ? Prisma.sql`, ${Prisma.join(groupColumns, ", ")}` : Prisma.empty}
+      c."count",
+      (SELECT COALESCE(sum(total), 0)::int FROM group_totals) AS total,
+      (SELECT count(*)::int FROM group_totals) AS group_count
+    FROM counted c
+    ${hasGroups ? Prisma.sql`JOIN top_groups USING (${groupColumnList})` : Prisma.empty}
   `;
+
+  return {
+    rows,
+    // Repeated on every row; an empty window has no rows and nothing to count.
+    total: rows[0]?.total ?? 0,
+    groupCount: rows[0]?.group_count ?? 0,
+  };
 }
 
 export async function getEventsSeries(
   orgId: string,
   params: DashboardSearchParams,
   timeWindow: TimeWindow,
-): Promise<EventsSeriesPoint[]> {
-  const rows = await getEventsSeriesBuckets(orgId, params, timeWindow);
+): Promise<EventsSeries> {
+  const { rows, total, groupCount } = await getEventsSeriesBuckets(
+    orgId,
+    params,
+    timeWindow,
+  );
 
-  return fillEmptyBuckets(rows, params, timeWindow);
+  return {
+    points: fillEmptyBuckets(rows, params, timeWindow),
+    total,
+    groupCount,
+  };
 }

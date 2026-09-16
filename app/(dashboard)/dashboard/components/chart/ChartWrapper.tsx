@@ -1,7 +1,7 @@
 import {
   getEventsSeries,
   getTimeWindow,
-  toWirePoint,
+  toEventsSeriesWire,
 } from "@/lib/queries/events";
 import {
   parseDashboardSearchParams,
@@ -24,16 +24,11 @@ export default async function ChartWrapper(props: Props) {
   const wikiOrgId = await getWikiOrgId();
   const timeWindow = getTimeWindow(searchParams.range);
 
-  const events = await getEventsSeries(
+  const series = await getEventsSeries(
     wikiOrgId.toString(),
     searchParams,
     timeWindow,
   );
 
-  return (
-    <Chart
-      initialEvents={events.map(toWirePoint)}
-      initialUntilMs={timeWindow.until.getTime()}
-    />
-  );
+  return <Chart initialSeries={toEventsSeriesWire(series, timeWindow)} />;
 }

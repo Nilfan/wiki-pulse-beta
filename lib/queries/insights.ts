@@ -14,6 +14,11 @@ export type InsightsBucket = {
   paths: number;
 };
 
+export type InsightsType = {
+  type: string;
+  count: number;
+};
+
 /**
  * Headline figures for the insights strip. Already JSON-safe, so the server
  * render and the insights API route hand the client the same object.
@@ -31,6 +36,8 @@ export type Insights = {
   untilMs: number;
   /** Every bucket in the window, zero-filled, ascending. */
   buckets: InsightsBucket[];
+  /** Events per type, busiest first. */
+  types: InsightsType[];
 };
 
 type InsightsRow = {
@@ -41,6 +48,8 @@ type InsightsRow = {
   last_event_ms: number | null;
   /** [bucket_ms, events, wikis, paths] for buckets holding events. */
   buckets: [number, number, number, number][];
+  /** [type, count], busiest first. */
+  types: [string, number][];
 };
 
 /**
@@ -67,6 +76,7 @@ async function getInsightsRow(
     WITH filtered AS (
       SELECT
         e."timestamp",
+        e."type",
         e."country",
         e."path",
         ${until}::bigint - ceil(
@@ -96,7 +106,14 @@ async function getInsightsRow(
       COALESCE(
         (SELECT json_agg(json_build_array(bucket_ms, events, wikis, paths)) FROM buckets),
         '[]'::json
-      ) AS buckets
+      ) AS buckets,
+      COALESCE(
+        (
+          SELECT json_agg(json_build_array("type", events) ORDER BY events DESC, "type")
+          FROM (SELECT "type", count(*)::int AS events FROM filtered GROUP BY "type") t
+        ),
+        '[]'::json
+      ) AS types
   `;
 
   return row;
@@ -137,5 +154,6 @@ export async function getInsights(
     lastEventMs: row.last_event_ms,
     untilMs: timeWindow.until.getTime(),
     buckets,
+    types: row.types.map(([type, count]) => ({ type, count })),
   };
 }

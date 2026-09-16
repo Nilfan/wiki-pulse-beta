@@ -14,7 +14,7 @@ import {
   YAxis,
   type DotItemDotProps,
 } from "recharts";
-import type { EventsSeriesWirePoint } from "@/lib/queries/events";
+import type { EventsSeriesWire } from "@/lib/queries/events";
 import {
   parseDashboardSearchParams,
   searchParamsFromURLSearchParams,
@@ -39,8 +39,7 @@ import useEventsSeries from "./useEventsSeries";
 import usePrefersReducedMotion from "./usePrefersReducedMotion";
 
 type Props = {
-  initialEvents: EventsSeriesWirePoint[];
-  initialUntilMs: number;
+  initialSeries: EventsSeriesWire;
 };
 
 /** The right gutter keeps the trailing time label from being clipped. */
@@ -60,8 +59,19 @@ const SERIES_ANIMATION = {
   animationEasing: "ease-in-out",
 } as const;
 
-export default function Chart({ initialEvents, initialUntilMs }: Props) {
+export default function Chart({ initialSeries }: Props) {
   const [chartType, setChartType] = useState<ChartType>("line");
+  // Series switched off from the legend, by key. Cleared on a filter change.
+  const [hiddenKeys, setHiddenKeys] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const toggleSeries = (key: string) =>
+    setHiddenKeys((previous) => {
+      const next = new Set(previous);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   // The URL is the filter state. Reading it here rather than taking it as a
   // prop means a filter change reaches the chart without a navigation — see
@@ -74,7 +84,7 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
       ),
     [rawSearchParams],
   );
-  const { range, groupBy } = params;
+  const { range } = params;
   // Canonical form of the same filters: what the refetch is keyed on, and the
   // query string it sends. Two filter states that differ only in click order
   // serialise identically, so they do not count as a change.
@@ -85,22 +95,60 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
 
   const isAnimationActive = !usePrefersReducedMotion();
 
-  const { events, untilMs, isLoading, refresh } = useEventsSeries(queryString, {
-    events: initialEvents,
-    untilMs: initialUntilMs,
+  const {
+    events,
+    total,
+    groupCount,
+    untilMs,
+    queryString: loadedQueryString,
+    isLoading,
+    refresh,
+  } = useEventsSeries(queryString, {
+    ...initialSeries,
+    queryString,
     isLoading: false,
   });
 
-  const { rows, series, total, droppedSeriesCount } = useMemo(
-    () => buildChartData(events, groupBy),
-    [events, groupBy],
+  // A filter change starts from every series visible. Keyed on the filters the
+  // series on screen was fetched with, not the URL: clearing as soon as the
+  // URL moves would redraw the old series in full while the request is out,
+  // then redraw again when the response lands. Reset during render rather than
+  // in an effect, so the new series never draws a frame with the old selection.
+  const [hiddenKeysQueryString, setHiddenKeysQueryString] =
+    useState(loadedQueryString);
+  if (hiddenKeysQueryString !== loadedQueryString) {
+    setHiddenKeysQueryString(loadedQueryString);
+    if (hiddenKeys.size) setHiddenKeys(new Set());
+  }
+
+  // The grouping the series on screen was fetched with, not the one in the
+  // URL: between a groupBy change and its response the two differ, and
+  // regrouping the old points by the new dimension would draw a throwaway
+  // "unknown" series before the real ones land — the chart redrawing twice.
+  const loadedGroupBy = useMemo(
+    () =>
+      parseDashboardSearchParams(
+        searchParamsFromURLSearchParams(new URLSearchParams(loadedQueryString)),
+      ).groupBy,
+    [loadedQueryString],
+  );
+
+  const { rows, series, droppedSeriesCount } = useMemo(
+    () => buildChartData(events, loadedGroupBy, groupCount),
+    [events, loadedGroupBy, groupCount],
+  );
+
+  // Filtered after buildChartData, so a hidden series keeps its colour slot.
+  const visibleSeries = useMemo(
+    () => series.filter(({ key }) => !hiddenKeys.has(key)),
+    [series, hiddenKeys],
   );
 
   const formatTime = useMemo(() => getTimeFormatter(range), [range]);
   const timeTicks = useMemo(() => getTimeTicks(rows), [rows]);
   const valueTicks = useMemo(
-    () => getValueTicks(rows, series, chartType),
-    [rows, series, chartType],
+    () => getValueTicks(rows, visibleSeries, chartType),
+    [rows, visibleSeries, chartType],
   );
 
   const lastIndex = rows.length - 1;
@@ -191,7 +239,7 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
                 cursor={<ChartCursor />}
                 isAnimationActive={false}
               />
-              {series.map(({ key, label, color }) => {
+              {visibleSeries.map(({ key, label, color }) => {
                 if (chartType === "line") {
                   return (
                     <Line
@@ -201,7 +249,7 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
                       type="monotone"
                       stroke={color}
                       strokeWidth={1.6}
-                      dot={series.length === 1 ? renderEndDot : false}
+                      dot={visibleSeries.length === 1 ? renderEndDot : false}
                       activeDot={{ r: 3, strokeWidth: 0, fill: color }}
                       isAnimationActive={isAnimationActive}
                       {...SERIES_ANIMATION}
@@ -244,6 +292,8 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
           </div>
           <ChartLegend
             series={series}
+            hiddenKeys={hiddenKeys}
+            onToggle={toggleSeries}
             droppedSeriesCount={droppedSeriesCount}
           />
         </>

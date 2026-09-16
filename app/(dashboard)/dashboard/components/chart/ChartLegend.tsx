@@ -1,26 +1,50 @@
+import clsx from "clsx";
 import type { ChartSeries } from "./chartSeries";
 
 type Props = {
   series: readonly ChartSeries[];
+  /** Keys of the series currently switched off. */
+  hiddenKeys: ReadonlySet<string>;
+  onToggle: (key: string) => void;
   /** Series the cap left undrawn; 0 hides the warning. */
   droppedSeriesCount?: number;
 };
 
 export default function ChartLegend({
   series,
+  hiddenKeys,
+  onToggle,
   droppedSeriesCount = 0,
 }: Props) {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-1">
       <ul className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
         {series.map(({ key, label, color }) => (
-          <li key={key} className="flex items-center gap-2">
-            <span
-              aria-hidden
-              className="size-2.5 shrink-0"
-              style={{ backgroundColor: color }}
-            />
-            <span className="font-data text-[12px] text-ink-soft">{label}</span>
+          <li key={key}>
+            <button
+              type="button"
+              aria-pressed={!hiddenKeys.has(key)}
+              title={hiddenKeys.has(key) ? "Show series" : "Hide series"}
+              onClick={() => onToggle(key)}
+              className={clsx(
+                "flex cursor-pointer items-center gap-2 transition-opacity",
+                hiddenKeys.has(key) && "opacity-40",
+              )}
+            >
+              <span
+                aria-hidden
+                className="size-2.5 shrink-0"
+                style={{ backgroundColor: color }}
+              />
+              <span
+                className={clsx(
+                  "font-data text-[12px] text-ink-soft",
+                  hiddenKeys.has(key) && "line-through",
+                )}
+              >
+                {label}
+              </span>
+            </button>
           </li>
         ))}
       </ul>

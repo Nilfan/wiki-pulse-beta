@@ -11,7 +11,7 @@ export function Header() {
     <div className={"top-0 z-20"}>
       <div
         className={
-          "max-w-maxw my-0 mx-auto py-3.5 px-gut flex items-center gap-7"
+          "max-w-full my-0 mx-auto py-3.5 px-gut flex items-center gap-7"
         }
       >
         <Logo />

@@ -1,21 +1,15 @@
-"use client";
-
 import { useMemo, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import type { Insights as InsightsData } from "@/lib/queries/insights";
-import {
-  parseDashboardSearchParams,
-  searchParamsFromURLSearchParams,
-  serializeDashboardSearchParams,
-} from "@/lib/queries/dashboardSearchParams";
+import type { DashboardSearchParams } from "@/lib/queries/dashboardSearchParams";
 import { formatTotal, getTimeFormatter } from "../../chart/chartAxis";
 import { SERIES_COLORS } from "../../chart/chartSeries";
 import Sparkline from "./Sparkline";
-import useInsights from "./useInsights";
 
 type Props = {
-  initialInsights: InsightsData;
+  insights: InsightsData;
+  range: DashboardSearchParams["range"];
+  isLoading: boolean;
 };
 
 /** Newest-event gap past which ingestion counts as behind, then as stopped. */
@@ -39,23 +33,7 @@ function getFreshnessStatus(gapMs: number) {
   return "stale";
 }
 
-export default function Insights({ initialInsights }: Props) {
-  const rawSearchParams = useSearchParams();
-  const params = useMemo(
-    () =>
-      parseDashboardSearchParams(
-        searchParamsFromURLSearchParams(rawSearchParams),
-      ),
-    [rawSearchParams],
-  );
-  // groupBy only reshapes the chart; dropping it here keeps a regroup from
-  // refetching figures that would come back identical.
-  const queryString = useMemo(
-    () => serializeDashboardSearchParams({ ...params, groupBy: [] }),
-    [params],
-  );
-
-  const { insights, isLoading } = useInsights(queryString, initialInsights);
+export default function Insights({ insights, range, isLoading }: Props) {
   const { buckets, lastEventMs, untilMs } = insights;
 
   const peak = useMemo(
@@ -66,17 +44,14 @@ export default function Insights({ initialInsights }: Props) {
       ),
     [buckets],
   );
-  const formatTime = useMemo(
-    () => getTimeFormatter(params.range),
-    [params.range],
-  );
+  const formatTime = useMemo(() => getTimeFormatter(range), [range]);
 
   const freshnessGapMs = lastEventMs === null ? null : untilMs - lastEventMs;
 
   return (
     <div
       className={clsx(
-        "grid grid-cols-2 border border-hair bg-card transition-opacity md:grid-cols-4",
+        "grid grid-cols-2 border border-hair bg-card transition-opacity md:grid-cols-4 border-b-0 border-t-0",
         isLoading && "opacity-45",
       )}
     >
@@ -96,7 +71,7 @@ export default function Insights({ initialInsights }: Props) {
         aside={peak ? formatTime(peak.timestamp) : null}
       />
       <InsightCell
-        label="unique paths"
+        label="unique pages"
         value={formatTotal(insights.paths)}
         aside={
           <Sparkline

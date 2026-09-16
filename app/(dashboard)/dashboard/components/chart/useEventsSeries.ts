@@ -1,18 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { EventsSeriesWirePoint } from "@/lib/queries/events";
+import type { EventsSeriesWire } from "@/lib/queries/events";
 import { revalidateDashboardData } from "../../actions";
 
-export type EventsSeriesState = {
-  events: EventsSeriesWirePoint[];
-  untilMs: number;
+export type EventsSeriesState = EventsSeriesWire & {
+  /**
+   * Filters the series on screen was fetched for. Lags the URL while a
+   * request is out, and is what the series has to be read with: reading old
+   * points with the new groupBy files them all under "unknown".
+   */
+  queryString: string;
   isLoading: boolean;
-};
-
-type EventsSeriesResponse = {
-  events: EventsSeriesWirePoint[];
-  untilMs: number;
 };
 
 /**
@@ -84,11 +83,15 @@ export default function useEventsSeries(
         if (!response.ok) {
           throw new Error(`Events request failed: ${response.status}`);
         }
-        return response.json() as Promise<EventsSeriesResponse>;
+        return response.json() as Promise<EventsSeriesWire>;
       })
-      .then(({ events, untilMs }) => {
+      .then((series) => {
         loadedQueryStringRef.current = targetQueryString;
-        setState({ events, untilMs, isLoading: false });
+        setState({
+          ...series,
+          queryString: targetQueryString,
+          isLoading: false,
+        });
       })
       .catch((error: unknown) => {
         // An abort is this hook superseding itself, not a failure.
