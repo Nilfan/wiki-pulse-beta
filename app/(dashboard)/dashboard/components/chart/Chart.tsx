@@ -25,6 +25,7 @@ import ChartCursor from "./ChartCursor";
 import ChartLegend from "./ChartLegend";
 import ChartTooltip from "./ChartTooltip";
 import ChartTypeTabs from "./ChartTypeTabs";
+import RefreshButton from "./RefreshButton";
 import {
   formatCompact,
   formatTotal,
@@ -35,6 +36,7 @@ import {
 } from "./chartAxis";
 import { buildChartData, type ChartType } from "./chartSeries";
 import useEventsSeries from "./useEventsSeries";
+import usePrefersReducedMotion from "./usePrefersReducedMotion";
 
 type Props = {
   initialEvents: EventsSeriesWirePoint[];
@@ -48,6 +50,15 @@ const AXIS_TICK = {
   fontSize: 11.5,
   fontFamily: "var(--font-data)",
 };
+
+/**
+ * When fresh data lands (a filter change or the background refresh), series
+ * glide from their old values to the new ones instead of jumping.
+ */
+const SERIES_ANIMATION = {
+  animationDuration: 600,
+  animationEasing: "ease-in-out",
+} as const;
 
 export default function Chart({ initialEvents, initialUntilMs }: Props) {
   const [chartType, setChartType] = useState<ChartType>("line");
@@ -72,7 +83,9 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
     [params],
   );
 
-  const { events, untilMs, isLoading } = useEventsSeries(queryString, {
+  const isAnimationActive = !usePrefersReducedMotion();
+
+  const { events, untilMs, isLoading, refresh } = useEventsSeries(queryString, {
     events: initialEvents,
     untilMs: initialUntilMs,
     isLoading: false,
@@ -125,6 +138,7 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
         <div className="flex items-center gap-3">
           <CacheBadge untilMs={untilMs} isLoading={isLoading} />
           <ChartTypeTabs value={chartType} onChange={setChartType} />
+          <RefreshButton onClick={refresh} isLoading={isLoading} />
         </div>
       </header>
 
@@ -189,7 +203,8 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
                       strokeWidth={1.6}
                       dot={series.length === 1 ? renderEndDot : false}
                       activeDot={{ r: 3, strokeWidth: 0, fill: color }}
-                      isAnimationActive={false}
+                      isAnimationActive={isAnimationActive}
+                      {...SERIES_ANIMATION}
                     />
                   );
                 }
@@ -207,7 +222,8 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
                       fillOpacity={0.16}
                       dot={false}
                       activeDot={{ r: 3, strokeWidth: 0, fill: color }}
-                      isAnimationActive={false}
+                      isAnimationActive={isAnimationActive}
+                      {...SERIES_ANIMATION}
                     />
                   );
                 }
@@ -219,7 +235,8 @@ export default function Chart({ initialEvents, initialUntilMs }: Props) {
                     dataKey={key}
                     fill={color}
                     stackId={chartType === "stacked" ? "series" : undefined}
-                    isAnimationActive={false}
+                    isAnimationActive={isAnimationActive}
+                    {...SERIES_ANIMATION}
                   />
                 );
               })}

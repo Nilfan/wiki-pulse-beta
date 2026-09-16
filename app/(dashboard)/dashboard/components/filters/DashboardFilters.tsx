@@ -1,8 +1,8 @@
 import { getWikiOrgId } from "@/lib/queries/organizations";
-import DateRangeFilter from "./filters/DateRangeFilter";
-import EventTypeFilter from "./filters/EventTypeFilter";
-import GroupByFilter from "./filters/GroupByFilter";
-import IntervalFilter from "./filters/IntervalFilter";
+import DateRangeFilter from "./DateRangeFilter";
+import EventTypeFilter from "./EventTypeFilter";
+import GroupByFilter from "./GroupByFilter";
+import IntervalFilter from "./IntervalFilter";
 import { getEventTypes } from "@/lib/queries/events";
 
 export default async function DashboardFilters() {

@@ -24,7 +24,6 @@ export default async function ChartWrapper(props: Props) {
   const wikiOrgId = await getWikiOrgId();
   const timeWindow = getTimeWindow(searchParams.range);
 
-  // TODO: Check if I really need it
   const events = await getEventsSeries(
     wikiOrgId.toString(),
     searchParams,

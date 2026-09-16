@@ -80,13 +80,25 @@ function getSeriesKey(
     .join(GROUP_VALUE_SEPARATOR);
 }
 
+const WIKI_DOMAIN = "/wiki/";
+
 /** "ru" → "Russian Federation (ru)"; unrecognised codes are left as-is. */
 function formatGroupValue(dimension: DashboardGroupBy, value: string) {
-  if (dimension !== "country") return value;
+  if (dimension === "page") {
+    const noWikiDomain = value.startsWith(WIKI_DOMAIN)
+      ? value.replace(WIKI_DOMAIN, "")
+      : value;
 
-  const code = value.toLowerCase();
-  const name = COUNTRY_NAMES[code] ?? WIKI_LANGUAGE_NAMES[code];
-  return name ? `${name} (${value})` : value;
+    return noWikiDomain ? decodeURI(noWikiDomain) : noWikiDomain;
+  }
+
+  if (dimension === "country") {
+    const code = value.toLowerCase();
+    const name = COUNTRY_NAMES[code] ?? WIKI_LANGUAGE_NAMES[code];
+    return name ? `${name} (${value})` : value;
+  }
+
+  return value;
 }
 
 function getSeriesLabel(
@@ -124,7 +136,9 @@ export function buildChartData(
     total += point.count;
   }
 
-  const rankedKeys = [...totalsByKey].sort(([, left], [, right]) => right - left);
+  const rankedKeys = [...totalsByKey].sort(
+    ([, left], [, right]) => right - left,
+  );
   const drawnKeys = rankedKeys.slice(0, MAX_SERIES).map(([key]) => key);
   const droppedSeriesCount = rankedKeys.length - drawnKeys.length;
   const drawnKeySet = new Set(drawnKeys);
