@@ -5,6 +5,8 @@ import type { Insights } from "@/lib/queries/insights";
 
 export type InsightsState = {
   insights: Insights;
+  /** The query string the figures on screen answer. */
+  loadedQueryString: string;
   isLoading: boolean;
 };
 
@@ -24,6 +26,7 @@ export default function useInsights(
 ): InsightsState {
   const [state, setState] = useState<InsightsState>({
     insights: initialInsights,
+    loadedQueryString: queryString,
     isLoading: false,
   });
   // The filters the figures on screen belong to; starts as the server render.
@@ -47,7 +50,11 @@ export default function useInsights(
         })
         .then((insights) => {
           loadedQueryStringRef.current = queryString;
-          setState({ insights, isLoading: false });
+          setState({
+            insights,
+            loadedQueryString: queryString,
+            isLoading: false,
+          });
         })
         .catch((error: unknown) => {
           if (error instanceof DOMException && error.name === "AbortError") {

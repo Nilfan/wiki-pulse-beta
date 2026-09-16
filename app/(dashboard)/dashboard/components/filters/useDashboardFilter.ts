@@ -17,13 +17,26 @@ export function setDashboardSearchParam(
   name: string,
   nextValue: DashboardFilterValue,
 ) {
-  const params = new URLSearchParams(window.location.search);
-  params.delete(name);
+  setDashboardSearchParams(pathname, { [name]: nextValue });
+}
 
-  if (Array.isArray(nextValue)) {
-    nextValue.forEach((item) => params.append(name, item));
-  } else {
-    params.set(name, nextValue);
+/**
+ * Writes several filters in one history entry, for changes that have to land
+ * together — a value filter and the groupBy it rules out, say.
+ */
+export function setDashboardSearchParams(
+  pathname: string,
+  nextValues: Record<string, DashboardFilterValue>,
+) {
+  const params = new URLSearchParams(window.location.search);
+
+  for (const [name, nextValue] of Object.entries(nextValues)) {
+    params.delete(name);
+    if (Array.isArray(nextValue)) {
+      nextValue.forEach((item) => params.append(name, item));
+    } else {
+      params.set(name, nextValue);
+    }
   }
 
   const query = params.toString();

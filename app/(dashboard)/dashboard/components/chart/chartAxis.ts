@@ -26,6 +26,11 @@ export function formatTotal(total: number) {
   return total.toLocaleString("en-US");
 }
 
+/** 0.1694 → "16.9%". */
+export function formatShare(share: number) {
+  return `${(share * 100).toFixed(1)}%`;
+}
+
 /** 0 → "0", 250 → "250", 2000 → "2k", 2500 → "2.5k", 1_200_000 → "1.2M". */
 export function formatCompact(value: number) {
   if (value >= 1_000_000) return `${trimZero(value / 1_000_000)}M`;

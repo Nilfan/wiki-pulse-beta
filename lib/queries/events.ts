@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { DURATION_MS, MAX_SERIES, SERIES_ALIGNMENT_MS } from "./constants";
+import { DIMENSION_SQL, getEventFiltersSql } from "./eventFilters";
 import type {
   DashboardGroupBy,
   DashboardSearchParams,
@@ -102,27 +103,6 @@ export function getTimeWindow(
     since: new Date(untilMs - DURATION_MS[range]),
   };
 }
-
-export async function getEventTypes(orgId: bigint): Promise<string[]> {
-  const eventTypes = await prisma.event.findMany({
-    where: { org_id: orgId },
-    distinct: ["type"],
-    select: { type: true },
-    orderBy: { type: "asc" },
-  });
-
-  return eventTypes.map(({ type }) => type);
-}
-
-/**
- * SQL for each groupBy dimension, keyed by the validated picklist value so the
- * fragments below are never built from user input.
- */
-const GROUP_BY_SQL: Record<DashboardGroupBy, string> = {
-  event: 'e."type"',
-  page: 'e."path"',
-  country: `COALESCE(e."country", 'unknown')`,
-};
 
 type EventsSeriesRow = {
   timestamp: Date;
@@ -260,7 +240,7 @@ async function getEventsSeriesBuckets(
 
   const hasGroups = params.groupBy.length > 0;
   const bucketedColumns = params.groupBy.map((groupBy) =>
-    Prisma.raw(`${GROUP_BY_SQL[groupBy]} AS "g_${groupBy}"`),
+    Prisma.raw(`${DIMENSION_SQL[groupBy]} AS "g_${groupBy}"`),
   );
   const groupColumns = params.groupBy.map((groupBy) =>
     Prisma.raw(`"g_${groupBy}"`),
@@ -286,7 +266,7 @@ async function getEventsSeriesBuckets(
       WHERE e."org_id" = ${orgId}::bigint
         AND e."timestamp" >= to_timestamp(${since}::bigint / 1000.0) AT TIME ZONE 'UTC'
         AND e."timestamp" < to_timestamp(${until}::bigint / 1000.0) AT TIME ZONE 'UTC'
-        ${params.eventType.length ? Prisma.sql`AND e."type" = ANY(${params.eventType}::text[])` : Prisma.empty}
+        ${getEventFiltersSql(params)}
     ),
     counted AS (
       SELECT bucket_ms${hasGroups ? Prisma.sql`, ${groupColumnList}` : Prisma.empty}, count(*)::int AS "count"

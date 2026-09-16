@@ -1,5 +1,8 @@
+import { Suspense } from "react";
 import { Logo } from "@/lib/components";
 import { ControlTab } from "@/lib/components/ControlTab";
+import Heartbeat from "./heartbeat/Heartbeat";
+import HeartbeatSkeleton from "./heartbeat/HeartbeatSkeleton";
 
 const TABS: { title: string; link: string; prefetch?: boolean }[] = [
   { title: "Overview", link: "/dashboard" },
@@ -25,6 +28,12 @@ export function Header() {
               prefetch={prefetch}
             />
           ))}
+        </div>
+
+        <div className="ml-auto">
+          <Suspense fallback={<HeartbeatSkeleton />}>
+            <Heartbeat />
+          </Suspense>
         </div>
       </div>
     </div>
