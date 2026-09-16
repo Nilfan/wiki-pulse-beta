@@ -21,6 +21,7 @@ export default function RootLayout({
         martianMono.variable,
         jetBrainsMono.variable,
         "h-full antialiased",
+        jetBrainsMono.className,
       )}
     >
       <body className="min-h-full flex flex-col">{children}</body>

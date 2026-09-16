@@ -1,4 +1,3 @@
-import { PulseIcon } from "./PulseIcon";
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
@@ -7,6 +6,7 @@ import {
   FeedListSkeleton,
   TotalEventCountSkeleton,
 } from "./FeedBlockSkeletons";
+import { PulseIcon } from "@/lib/components";
 
 type PreviewEventType = Pick<
   Prisma.EventModel,
@@ -17,7 +17,7 @@ async function getLastNEvents(n = 20) {
   "use cache";
 
   cacheTag("events");
-  cacheLife("hours");
+  cacheLife("seconds");
 
   return await prisma.event.findMany({
     take: -n,
@@ -37,7 +37,7 @@ async function getLastNEvents(n = 20) {
 async function getEventsTotalCount() {
   "use cache";
   cacheTag("events");
-  cacheLife("hours");
+  cacheLife("seconds");
 
   return await prisma.event.count();
 }
@@ -62,18 +62,14 @@ async function FeedEvents() {
 export const FeedBlock = () => {
   return (
     <div className="border border-ink bg-shell">
-      <div
-        className="font-data flex items-center gap-2.25 px-3 py-2.25 border border-rule text-[11px] text-ink-soft"
-      >
+      <div className="font-data flex items-center gap-2.25 px-3 py-2.25 border border-rule text-[11px] text-ink-soft">
         <PulseIcon mode={"Infinite"} /> LIVE
         <span className="ml-auto text-ink-faint">org: acme-inc</span>
       </div>
       <Suspense fallback={<FeedListSkeleton />}>
         <FeedEvents />
       </Suspense>
-      <div
-        className="font-data px-3 py-3.5 border-t border-t-rule flex items-baseline gap-2.5"
-      >
+      <div className="font-data px-3 py-3.5 border-t border-t-rule flex items-baseline gap-2.5">
         <Suspense fallback={<TotalEventCountSkeleton />}>
           <TotalEventCountLabel />
         </Suspense>

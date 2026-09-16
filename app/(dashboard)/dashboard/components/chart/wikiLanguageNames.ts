@@ -1,0 +1,47 @@
+/**
+ * The `country` dimension is actually the Wikipedia language-edition
+ * subdomain (see data-collector/get-language-from-server-url.ts), so codes
+ * like "en" or "zh" never appear in an ISO 3166 country list. This covers the
+ * common editions that fall through {@link COUNTRY_NAMES}, keyed lowercase.
+ */
+export const WIKI_LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  zh: "Chinese",
+  ce: "Chechen",
+  ja: "Japanese",
+  ko: "Korean",
+  cs: "Czech",
+  el: "Greek",
+  he: "Hebrew",
+  hi: "Hindi",
+  th: "Thai",
+  vi: "Vietnamese",
+  fa: "Persian",
+  ur: "Urdu",
+  bn: "Bengali",
+  ta: "Tamil",
+  te: "Telugu",
+  ml: "Malayalam",
+  mr: "Marathi",
+  pa: "Punjabi",
+  gu: "Gujarati",
+  kn: "Kannada",
+  or: "Odia",
+  as: "Assamese",
+  ne: "Nepali",
+  si: "Sinhala",
+  km: "Khmer",
+  lo: "Lao",
+  ka: "Georgian",
+  hy: "Armenian",
+  kk: "Kazakh",
+  simple: "Simple English",
+  war: "Waray",
+  ceb: "Cebuano",
+  nn: "Norwegian Nynorsk",
+  nb: "Norwegian Bokmål",
+  eo: "Esperanto",
+  sw: "Swahili",
+  yo: "Yoruba",
+  sh: "Serbo-Croatian",
+};

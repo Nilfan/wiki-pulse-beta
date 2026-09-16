@@ -1,6 +1,5 @@
-import ControlTab from "./ControlTab";
-import styles from "./header.module.css";
-import Logo from "./Logo";
+import { Logo } from "@/lib/components";
+import { ControlTab } from "@/lib/components/ControlTab";
 
 const TABS: { title: string; link: string; prefetch?: boolean }[] = [
   { title: "Product", link: "/", prefetch: true },
@@ -8,7 +7,7 @@ const TABS: { title: string; link: string; prefetch?: boolean }[] = [
   { title: "Dashboard", link: "/dashboard" },
 ];
 
-export default function Header() {
+export function Header() {
   return (
     <div
       className={
