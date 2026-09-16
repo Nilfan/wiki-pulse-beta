@@ -15,6 +15,13 @@ export const INTERVAL_OPTIONS = ["5m", "15m", "1h", "6h", "1d"] as const;
 export const GROUP_BY_OPTIONS = ["event", "page", "country"] as const;
 
 /**
+ * Most values one value filter (event type, page, country) carries. Each lands
+ * in an `= ANY(...)` list and in every cache key, so the URL cannot grow it
+ * without bound.
+ */
+export const MAX_FILTER_VALUES = 50;
+
+/**
  * Grid the upper bound of a series window is floored to. Requests landing in
  * the same slot share one bound, and therefore one cache entry.
  */
@@ -42,3 +49,30 @@ export const DURATION_MS = {
   "21d": 21 * 24 * 60 * 60 * 1000,
   "60d": 60 * 24 * 60 * 60 * 1000,
 } as const;
+
+/**
+ * Dimensions a breakdown can rank: the lists below the chart, and the options
+ * of the value filters.
+ */
+export const BREAKDOWN_DIMENSIONS = GROUP_BY_OPTIONS;
+
+/** Longest search a filter dropdown sends. */
+export const MAX_FILTER_SEARCH_LENGTH = 100;
+
+/**
+ * Rows per breakdown request. Also the most rows the country pie reads, so
+ * the first page is always enough to draw it.
+ */
+export const BREAKDOWN_PAGE_SIZE = 50;
+
+/**
+ * Cap on one breakdown request. A background refresh reloads everything the
+ * list has scrolled through in one go, up to this many rows.
+ */
+export const BREAKDOWN_MAX_LIMIT = 500;
+
+/** How far back a landing feed snapshot reaches. */
+export const FEED_WINDOW_MS = 10 * 60 * 1000;
+
+/** How often the landing feed asks for a fresh snapshot. */
+export const FEED_REFRESH_MS = 5 * 60 * 1000;

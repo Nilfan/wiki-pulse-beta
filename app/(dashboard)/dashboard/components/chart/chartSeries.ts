@@ -3,8 +3,7 @@ import type {
   DashboardGroupBy,
   EventsSeriesWirePoint,
 } from "@/lib/queries/events";
-import { COUNTRY_NAMES } from "./countryNames";
-import { WIKI_LANGUAGE_NAMES } from "./wikiLanguageNames";
+import { WIKI_LANGUAGE_NAMES } from "@/lib/labels/wikiLanguageNames";
 
 export const CHART_TYPES = ["line", "area", "bar", "stacked"] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
@@ -81,19 +80,29 @@ function getSeriesKey(
 
 const WIKI_DOMAIN = "/wiki/";
 
+/** Paths are stored percent-encoded; a malformed one is shown as stored. */
+export function decodePath(path: string) {
+  try {
+    return decodeURI(path);
+  } catch {
+    return path;
+  }
+}
+
 /** "ru" → "Russian Federation (ru)"; unrecognised codes are left as-is. */
-function formatGroupValue(dimension: DashboardGroupBy, value: string) {
+export function formatGroupValue(dimension: DashboardGroupBy, value: string) {
   if (dimension === "page") {
     const noWikiDomain = value.startsWith(WIKI_DOMAIN)
       ? value.replace(WIKI_DOMAIN, "")
       : value;
 
-    return noWikiDomain ? decodeURI(noWikiDomain) : noWikiDomain;
+    return decodePath(noWikiDomain);
   }
 
   if (dimension === "country") {
     const code = value.toLowerCase();
-    const name = COUNTRY_NAMES[code] ?? WIKI_LANGUAGE_NAMES[code];
+    // A wiki language edition, not a country: "ar" is Arabic, not Argentina.
+    const name = WIKI_LANGUAGE_NAMES[code];
     return name ? `${name} (${value})` : value;
   }
 

@@ -57,6 +57,8 @@
   --animate-beat-3: beat 2.4s ease-in-out 3;
   --animate-beat: beat 2.4s ease-in-out infinite;
   --animate-feed-row-slidein: slidein 0.34s ease-out;
+  --animate-ecg: ecg 1.5s linear infinite;
+  --animate-ecg-slow: ecg 3s linear infinite;
 
   --font-display: var(--font-martian);
   --font-body: var(--font-jetbrains);
@@ -71,6 +73,12 @@
     50% {
       opacity: 0.35;
       transform: scale(0.8);
+    }
+  }
+  /* Shifts a heartbeat trace by exactly one beat, see HeartbeatBadge. */
+  @keyframes ecg {
+    to {
+      transform: translateX(-48px);
     }
   }
   @keyframes slidein {

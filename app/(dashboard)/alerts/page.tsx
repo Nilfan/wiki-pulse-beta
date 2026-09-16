@@ -1,3 +1,3 @@
 export default function Alerts() {
-  return <div>Alerts</div>;
+  return <div>TBD</div>;
 }

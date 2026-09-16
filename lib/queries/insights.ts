@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/db";
-import { Prisma } from "@/generated/prisma/client";
 import { cacheLife, cacheTag } from "next/cache";
 import { DURATION_MS } from "./constants";
 import type { DashboardSearchParams } from "./dashboardSearchParams";
+import { getEventFiltersSql } from "./eventFilters";
 import { getBucketStarts, type TimeWindow } from "./events";
 
 export type InsightsBucket = {
@@ -36,7 +36,11 @@ export type Insights = {
   untilMs: number;
   /** Every bucket in the window, zero-filled, ascending. */
   buckets: InsightsBucket[];
-  /** Events per type, busiest first. */
+  /**
+   * Events per type, busiest first. Faceted: the event type filter does not
+   * narrow it, so the by-type list keeps every type and only marks the picked
+   * ones.
+   */
   types: InsightsType[];
 };
 
@@ -73,7 +77,16 @@ async function getInsightsRow(
   const interval = BigInt(DURATION_MS[params.interval]);
 
   const [row] = await prisma.$queryRaw<InsightsRow[]>`
-    WITH filtered AS (
+    WITH type_counts AS (
+      SELECT e."type", count(*)::int AS events
+      FROM "Event" e
+      WHERE e."org_id" = ${orgId}::bigint
+        AND e."timestamp" >= to_timestamp(${since}::bigint / 1000.0) AT TIME ZONE 'UTC'
+        AND e."timestamp" < to_timestamp(${until}::bigint / 1000.0) AT TIME ZONE 'UTC'
+        ${getEventFiltersSql({ ...params, eventType: [] })}
+      GROUP BY e."type"
+    ),
+    filtered AS (
       SELECT
         e."timestamp",
         e."type",
@@ -87,7 +100,7 @@ async function getInsightsRow(
       WHERE e."org_id" = ${orgId}::bigint
         AND e."timestamp" >= to_timestamp(${since}::bigint / 1000.0) AT TIME ZONE 'UTC'
         AND e."timestamp" < to_timestamp(${until}::bigint / 1000.0) AT TIME ZONE 'UTC'
-        ${params.eventType.length ? Prisma.sql`AND e."type" = ANY(${params.eventType}::text[])` : Prisma.empty}
+        ${getEventFiltersSql(params)}
     ),
     buckets AS (
       SELECT
@@ -110,7 +123,7 @@ async function getInsightsRow(
       COALESCE(
         (
           SELECT json_agg(json_build_array("type", events) ORDER BY events DESC, "type")
-          FROM (SELECT "type", count(*)::int AS events FROM filtered GROUP BY "type") t
+          FROM type_counts
         ),
         '[]'::json
       ) AS types
@@ -121,10 +134,10 @@ async function getInsightsRow(
 
 export async function getInsights(
   orgId: string,
-  { range, interval, eventType }: DashboardSearchParams,
+  { range, interval, eventType, page, country }: DashboardSearchParams,
   timeWindow: TimeWindow,
 ): Promise<Insights> {
-  const params = { range, interval, eventType };
+  const params = { range, interval, eventType, page, country };
   const row = await getInsightsRow(orgId, params, timeWindow);
 
   const byBucket = new Map<number, InsightsBucket>();

@@ -1,19 +1,20 @@
-import { getWikiOrgId } from "@/lib/queries/organizations";
 import DateRangeFilter from "./DateRangeFilter";
-import EventTypeFilter from "./EventTypeFilter";
 import GroupByFilter from "./GroupByFilter";
 import IntervalFilter from "./IntervalFilter";
-import { getEventTypes } from "@/lib/queries/events";
+import ValueFilters from "./ValueFilters";
 
-export default async function DashboardFilters() {
-  const wikiOrgId = await getWikiOrgId();
-  const availableEventTypes = await getEventTypes(wikiOrgId);
+export default function DashboardFilters() {
   return (
     <div className="sticky top-0 z-40 flex flex-wrap items-center gap-2 border-t border-t-ink border-b border-b-ink bg-paper px-0 py-2.25 mb-2">
       <DateRangeFilter />
       <IntervalFilter />
-      <EventTypeFilter availableEventTypes={availableEventTypes} />
       <GroupByFilter />
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        className="mx-1 h-6 w-px shrink-0 bg-ink"
+      />
+      <ValueFilters />
     </div>
   );
 }

@@ -12,10 +12,6 @@ type Props = {
   isLoading: boolean;
 };
 
-/** Newest-event gap past which ingestion counts as behind, then as stopped. */
-const LAGGING_FROM_MS = 2 * 60 * 1000;
-const STALE_FROM_MS = 15 * 60 * 1000;
-
 function formatDuration(ms: number) {
   const seconds = Math.max(0, ms) / 1000;
   if (seconds < 60) return `${seconds.toFixed(1)}s`;
@@ -25,12 +21,6 @@ function formatDuration(ms: number) {
 
   const hours = minutes / 60;
   return hours < 24 ? `${Math.floor(hours)}h` : `${Math.floor(hours / 24)}d`;
-}
-
-function getFreshnessStatus(gapMs: number) {
-  if (gapMs < LAGGING_FROM_MS) return "healthy";
-  if (gapMs < STALE_FROM_MS) return "lagging";
-  return "stale";
 }
 
 export default function Insights({ insights, range, isLoading }: Props) {
@@ -83,11 +73,7 @@ export default function Insights({ insights, range, isLoading }: Props) {
       <InsightCell
         label="last event"
         value={freshnessGapMs === null ? "—" : formatDuration(freshnessGapMs)}
-        aside={
-          freshnessGapMs === null
-            ? "no data"
-            : getFreshnessStatus(freshnessGapMs)
-        }
+        aside={freshnessGapMs === null ? "no data" : null}
       />
     </div>
   );
