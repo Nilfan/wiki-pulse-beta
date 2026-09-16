@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && prisma migrate deploy && next build",
+    "build:prod": "export NODE_ENV=production && prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint",
     "start:data-collector": "deno run --env-file -R -E --allow-net --sloppy-imports --allow-sys data-collector/index.ts",
