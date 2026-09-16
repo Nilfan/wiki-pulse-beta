@@ -23,7 +23,7 @@ export default function DashboardPage({ searchParams }: DashboardPageProps) {
         </Suspense>
       </section>
       <section>
-        <ExtraTables />
+        <ExtraTables searchParams={searchParams} />
       </section>
     </>
   );

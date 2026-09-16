@@ -113,7 +113,7 @@ const BUCKET_KEY_SEPARATOR = "\u0001";
  * therefore fully filled, whatever the interval. The SQL below derives its own
  * bucket from the same `until` and interval, which keeps the two aligned.
  */
-function getBucketStarts(
+export function getBucketStarts(
   params: DashboardSearchParams,
   timeWindow: TimeWindow,
 ): number[] {
