@@ -17,10 +17,12 @@ export default function DashboardLayout({
             leading-[1.55]
             h-full
             overflow-auto
+            flex
+            flex-col
             `}
     >
       <Header />
-      <main className="px-gut">{children}</main>
+      <main className="flex flex-1 flex-col px-gut">{children}</main>
       <Footer />
     </div>
   );

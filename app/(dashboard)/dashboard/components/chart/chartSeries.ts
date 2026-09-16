@@ -1,3 +1,4 @@
+import { MAX_SERIES } from "@/lib/queries/constants";
 import type {
   DashboardGroupBy,
   EventsSeriesWirePoint,
@@ -37,13 +38,13 @@ export const SERIES_COLORS = [
 ] as const;
 
 /**
- * Drawn series are capped at one per colour slot: groupBy=page can produce
- * thousands of groups, and every one would become its own SVG path. The
- * quietest groups past the cap are dropped rather than folded into an "other"
- * line — a catch-all built from a long tail outranks the real series it sits
- * beside and reads as something it is not. ChartLegend says how many went.
+ * Drawn series are capped at one per colour slot (MAX_SERIES, applied in SQL
+ * by getEventsSeries): groupBy=page can produce thousands of groups, and every
+ * one would become its own SVG path. The quietest groups past the cap are
+ * dropped rather than folded into an "other" line — a catch-all built from a
+ * long tail outranks the real series it sits beside and reads as something it
+ * is not. ChartLegend says how many went.
  */
-const MAX_SERIES = SERIES_COLORS.length;
 
 /** Key used when no groupBy is active and the chart draws a single series. */
 export const TOTAL_SERIES_KEY = "events";
@@ -63,8 +64,6 @@ export type ChartRow = {
 export type ChartData = {
   rows: ChartRow[];
   series: ChartSeries[];
-  /** Every event in the window, including any the cap dropped below. */
-  total: number;
   /** Series the cap left undrawn, for the legend's warning. */
   droppedSeriesCount: number;
 };
@@ -121,26 +120,24 @@ function getSeriesLabel(
 export function buildChartData(
   events: readonly EventsSeriesWirePoint[],
   groupBy: readonly DashboardGroupBy[],
+  /** Groups in the window before the server's cap, from getEventsSeries. */
+  groupCount: number,
 ): ChartData {
   const totalsByKey = new Map<string, number>();
   const labelsByKey = new Map<string, string>();
-  let total = 0;
   for (const point of events) {
     const key = getSeriesKey(point, groupBy);
     totalsByKey.set(key, (totalsByKey.get(key) ?? 0) + point.count);
     if (!labelsByKey.has(key)) {
       labelsByKey.set(key, getSeriesLabel(point, groupBy));
     }
-    // Counted before the cap, so the headline figure stays the true number of
-    // events and does not move when the grouping changes.
-    total += point.count;
   }
 
   const rankedKeys = [...totalsByKey].sort(
     ([, left], [, right]) => right - left,
   );
   const drawnKeys = rankedKeys.slice(0, MAX_SERIES).map(([key]) => key);
-  const droppedSeriesCount = rankedKeys.length - drawnKeys.length;
+  const droppedSeriesCount = Math.max(0, groupCount - drawnKeys.length);
   const drawnKeySet = new Set(drawnKeys);
 
   const rowsByTimestamp = new Map<number, ChartRow>();
@@ -170,5 +167,5 @@ export function buildChartData(
     color: SERIES_COLORS[index],
   }));
 
-  return { rows, series, total, droppedSeriesCount };
+  return { rows, series, droppedSeriesCount };
 }

@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import {
   getEventsSeries,
   getTimeWindow,
-  toWirePoint,
-  type EventsSeriesWirePoint,
+  toEventsSeriesWire,
+  type EventsSeriesWire,
 } from "@/lib/queries/events";
 import {
   parseDashboardSearchParams,
@@ -11,10 +11,7 @@ import {
 } from "@/lib/queries/dashboardSearchParams";
 import { getWikiOrgId } from "@/lib/queries/organizations";
 
-export type EventsSeriesResponse = {
-  events: EventsSeriesWirePoint[];
-  untilMs: number;
-};
+export type EventsSeriesResponse = EventsSeriesWire;
 
 /**
  * Series behind the dashboard chart, for filter changes made after the first
@@ -33,16 +30,13 @@ export async function GET(request: NextRequest) {
   const wikiOrgId = await getWikiOrgId();
   const timeWindow = getTimeWindow(searchParams.range);
 
-  const events = await getEventsSeries(
+  const series = await getEventsSeries(
     wikiOrgId.toString(),
     searchParams,
     timeWindow,
   );
 
-  const body: EventsSeriesResponse = {
-    events: events.map(toWirePoint),
-    untilMs: timeWindow.until.getTime(),
-  };
+  const body: EventsSeriesResponse = toEventsSeriesWire(series, timeWindow);
 
   return NextResponse.json(body);
 }

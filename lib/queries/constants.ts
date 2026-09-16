@@ -20,6 +20,13 @@ export const GROUP_BY_OPTIONS = ["event", "page", "country"] as const;
  */
 export const SERIES_ALIGNMENT_MS = 5 * 60 * 1000;
 
+/**
+ * Most series the chart draws — one per colour slot in chartSeries. Enforced
+ * in SQL: groupBy=page yields tens of thousands of groups, and zero-filling
+ * all of them produced responses in the hundreds of megabytes.
+ */
+export const MAX_SERIES = 10;
+
 export const DURATION_MS = {
   "5m": 5 * 60 * 1000,
   "15m": 15 * 60 * 1000,

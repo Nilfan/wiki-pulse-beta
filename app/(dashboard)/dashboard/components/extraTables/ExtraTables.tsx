@@ -1,7 +1,8 @@
 import { Suspense } from "react";
 import type { DashboardSearchParamsInput } from "@/lib/queries/dashboardSearchParams";
+import ByTypeTableSkeleton from "./byType/ByTypeTableSkeleton";
+import ExtraTablesWrapper from "./ExtraTablesWrapper";
 import InsightsSkeleton from "./insights/InsightsSkeleton";
-import InsightsWrapper from "./insights/InsightsWrapper";
 
 type Props = {
   searchParams: Promise<DashboardSearchParamsInput>;
@@ -9,8 +10,15 @@ type Props = {
 
 export default function ExtraTables({ searchParams }: Props) {
   return (
-    <Suspense fallback={<InsightsSkeleton />}>
-      <InsightsWrapper searchParams={searchParams} />
+    <Suspense
+      fallback={
+        <div className="flex flex-1 flex-col">
+          <InsightsSkeleton />
+          <ByTypeTableSkeleton />
+        </div>
+      }
+    >
+      <ExtraTablesWrapper searchParams={searchParams} />
     </Suspense>
   );
 }
