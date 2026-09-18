@@ -4,6 +4,11 @@ import type {
   EventsSeriesWirePoint,
 } from "@/lib/queries/events";
 import { WIKI_LANGUAGE_NAMES } from "@/lib/labels/wikiLanguageNames";
+import {
+  decodePath,
+  removeWikiPart,
+  WIKI_DOMAIN,
+} from "@/lib/helpers/page-path";
 
 export const CHART_TYPES = ["line", "area", "bar", "stacked"] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
@@ -78,25 +83,10 @@ function getSeriesKey(
     .join(GROUP_VALUE_SEPARATOR);
 }
 
-const WIKI_DOMAIN = "/wiki/";
-
-/** Paths are stored percent-encoded; a malformed one is shown as stored. */
-export function decodePath(path: string) {
-  try {
-    return decodeURI(path);
-  } catch {
-    return path;
-  }
-}
-
 /** "ru" → "Russian Federation (ru)"; unrecognised codes are left as-is. */
 export function formatGroupValue(dimension: DashboardGroupBy, value: string) {
   if (dimension === "page") {
-    const noWikiDomain = value.startsWith(WIKI_DOMAIN)
-      ? value.replace(WIKI_DOMAIN, "")
-      : value;
-
-    return decodePath(noWikiDomain);
+    return removeWikiPart(decodePath(value));
   }
 
   if (dimension === "country") {

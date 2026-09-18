@@ -9,6 +9,7 @@ import {
 } from "react";
 import { FEED_REFRESH_MS } from "@/lib/queries/constants";
 import type { FeedEvent, FeedSnapshot } from "@/lib/queries/feed";
+import { decodePath, removeWikiPart } from "@/lib/helpers/page-path";
 
 /** Rows the feed keeps on screen; the oldest one leaves when a new one comes. */
 const FEED_MAX_ROWS = 20;
@@ -208,7 +209,7 @@ const FeedList = ({
             {row.type}
           </span>
           <span className="overflow-hidden text-ellipsis text-ink">
-            {row.path}
+            {decodePath(removeWikiPart(row.path))}
           </span>
           <span className="text-ink-faint text-right">{row.country}</span>
         </div>
