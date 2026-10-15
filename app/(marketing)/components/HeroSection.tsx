@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FeedBlock } from "./FeedBlock";
 
 export const HeroSection = () => (
@@ -34,11 +35,13 @@ export const HeroSection = () => (
         </p>
         <div className="flex flex-wrap gap-3 mt-7.5">
           <button
-            className="font-data inline-block border border-ink bg-ink px-5 py-3 text-[13px] text-paper hover:border-signal hover:bg-signal"
+            disabled
+            className="font-data inline-block border border-ink bg-ink px-5 py-3 text-[13px] text-paper disabled:cursor-not-allowed disabled:opacity-50"
           >
             Start tracking
           </button>
-          <button
+          <Link
+            href="/dashboard"
             className="font-data
                     inline-block
                     border border-ink
@@ -49,7 +52,7 @@ export const HeroSection = () => (
                     hover:bg-shell"
           >
             See a live dashboard
-          </button>
+          </Link>
         </div>
         <p
           className="font-data mt-6.5 text-[11.5px] text-ink-faint tracking-[0.02em]"
