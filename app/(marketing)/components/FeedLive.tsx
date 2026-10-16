@@ -18,6 +18,7 @@ const REVEAL_MIN_DELAY_MS = 1000;
 const REVEAL_MAX_DELAY_MS = 3000;
 
 type FeedRow = FeedEvent & {
+  playbackId: string;
   /** When the row showed up; `null` for the rows present since the page opened. */
   shownAt: number | null;
 };
@@ -28,6 +29,8 @@ type FeedState = {
   /** Events still waiting for their turn, oldest first. */
   queue: FeedEvent[];
   total: number;
+  /** Stored events to cycle through when there are no new arrivals. */
+  replay: FeedEvent[];
   /** Ids of the latest snapshot, so the next one only queues what is new. */
   seenIds: Set<string>;
   revealed: number;
@@ -37,21 +40,15 @@ type FeedAction =
   | { type: "reveal"; now: number }
   | { type: "merge"; snapshot: FeedSnapshot };
 
-/**
- * The older half of a snapshot is on screen straight away; the part that
- * arrived within the last refresh interval is played back one by one, which
- * roughly lasts until the next snapshot.
- */
+/** Start with stored rows, then continuously replay the database sample. */
 function initFeedState(snapshot: FeedSnapshot): FeedState {
-  const cutoff = snapshot.fetchedAt - FEED_REFRESH_MS;
-  const arrived = snapshot.events.filter((event) => event.timestamp <= cutoff);
-
   return {
-    rows: arrived
+    rows: snapshot.events
       .slice(-FEED_MAX_ROWS)
       .reverse()
-      .map((event) => ({ ...event, shownAt: null })),
-    queue: snapshot.events.filter((event) => event.timestamp > cutoff),
+      .map((event) => ({ ...event, shownAt: null, playbackId: `initial-${event.id}` })),
+    queue: [],
+    replay: snapshot.events,
     total: snapshot.total,
     seenIds: new Set(snapshot.events.map((event) => event.id)),
     revealed: 0,
@@ -61,12 +58,14 @@ function initFeedState(snapshot: FeedSnapshot): FeedState {
 function feedReducer(state: FeedState, action: FeedAction): FeedState {
   switch (action.type) {
     case "reveal": {
-      const [next, ...queue] = state.queue;
+      const [arrival, ...remaining] = state.queue;
+      const next = arrival ?? state.replay[state.revealed % state.replay.length];
       if (!next) return state;
+      const queue = arrival ? remaining : state.queue;
 
       return {
         ...state,
-        rows: [{ ...next, shownAt: action.now }, ...state.rows].slice(
+        rows: [{ ...next, shownAt: action.now, playbackId: `reveal-${state.revealed}` }, ...state.rows].slice(
           0,
           FEED_MAX_ROWS,
         ),
@@ -84,6 +83,7 @@ function feedReducer(state: FeedState, action: FeedAction): FeedState {
         ...state,
         queue: [...state.queue, ...unseen],
         total: snapshot.total,
+        replay: snapshot.events.length > 0 ? snapshot.events : state.replay,
         seenIds: new Set(snapshot.events.map((event) => event.id)),
       };
     }
@@ -109,16 +109,16 @@ export const FeedLive = ({ snapshot }: { snapshot: FeedSnapshot }) => {
   const [openedAt] = useState(Date.now);
   const isClient = useIsClient();
 
-  const hasQueued = state.queue.length > 0;
+  const hasPlayback = state.queue.length > 0 || state.replay.length > 0;
   useEffect(() => {
-    if (!hasQueued) return;
+    if (!hasPlayback) return;
 
     const timeout = setTimeout(
       () => dispatch({ type: "reveal", now: Date.now() }),
       randomRevealDelay(),
     );
     return () => clearTimeout(timeout);
-  }, [hasQueued, state.revealed]);
+  }, [hasPlayback, state.revealed]);
 
   useEffect(() => {
     let controller: AbortController | null = null;
@@ -136,7 +136,7 @@ export const FeedLive = ({ snapshot }: { snapshot: FeedSnapshot }) => {
         const snapshot: FeedSnapshot = await response.json();
         dispatch({ type: "merge", snapshot });
       } catch {
-        // Keep playing back what is queued; the next interval tries again.
+        // Continue replaying stored events; the next interval tries again.
       }
     };
 
@@ -147,9 +147,6 @@ export const FeedLive = ({ snapshot }: { snapshot: FeedSnapshot }) => {
     };
   }, []);
 
-  // Queued events are already tracked, they just haven't been played back yet.
-  const shownTotal = state.total - state.queue.length;
-
   return (
     <>
       <FeedList
@@ -159,7 +156,7 @@ export const FeedLive = ({ snapshot }: { snapshot: FeedSnapshot }) => {
       />
       <FeedFooter>
         <span className="font-bold text-[clamp(21px,2.4vw,27px)] tracking-[-0.02em] tabular-nums">
-          {shownTotal.toLocaleString("en-US")}
+          {state.total.toLocaleString("en-US")}
         </span>
       </FeedFooter>
     </>
@@ -195,7 +192,7 @@ const FeedList = ({
     <div className="h-75.5 overflow-hidden relative">
       {rows.map((row) => (
         <div
-          key={row.id}
+          key={row.playbackId}
           className="font-data animate-feed-row-slidein grid grid-cols-[60px_74px_1fr_30px] gap-2 items-center px-3 py-1.75 border-b border-b-[#EDEFEA] text-[11.5px] whitespace-nowrap"
         >
           <span className="text-ink-faint tabular-nums">

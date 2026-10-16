@@ -17,7 +17,7 @@ function message(time: number, meta = true) {
   }) });
 }
 
-Deno.test("steady traffic produces 40 events in every minute across three flushes", async () => {
+Deno.test("steady traffic produces 20 events in every minute across three flushes", async () => {
   const service = collector();
   const now = Date.now;
   const log = console.log;
@@ -31,12 +31,12 @@ Deno.test("steady traffic produces 40 events in every minute across three flushe
         Date.now = () => time;
         service["addEventToBatchOnMessage"](message(time));
       }
-      equal(service.eventBatch.length, 1200);
+      equal(service.eventBatch.length, 600);
       for (const event of service.eventBatch) {
         const time = new Date(event.timestamp!).getTime();
         counts[Math.floor((time - start - batch * FLUSH_TIMEOUT_MS) / 60000)]++;
       }
-      deepEqual(counts, new Array(30).fill(40));
+      deepEqual(counts, new Array(30).fill(20));
       await service.flushBatch();
       equal(service.eventBatch.length, 0);
     }

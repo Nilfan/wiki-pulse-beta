@@ -1,6 +1,5 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { prisma } from "@/lib/db";
-import { FEED_WINDOW_MS } from "@/lib/queries/constants";
 
 /** Upper bound on a snapshot, in case traffic spikes far above the norm. */
 const FEED_MAX_EVENTS = 500;
@@ -17,7 +16,7 @@ export type FeedEvent = {
 };
 
 export type FeedSnapshot = {
-  /** Events of the last {@link FEED_WINDOW_MS}, oldest first. */
+  /** Latest stored events, oldest first, available for continuous replay. */
   events: FeedEvent[];
   /** Every event ever tracked, including the ones above. */
   total: number;
@@ -34,7 +33,6 @@ async function getFeedSnapshotAt(untilMs: number): Promise<FeedSnapshot> {
     prisma.event.findMany({
       where: {
         timestamp: {
-          gt: new Date(untilMs - FEED_WINDOW_MS),
           lte: new Date(untilMs),
         },
       },

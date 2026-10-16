@@ -1,5 +1,5 @@
 /** Shared by the Deno collector and the public pipeline explanation. */
-export const MAX_EVENTS_PER_ONE_MINUTE = 40; // events per minute
+export const MAX_EVENTS_PER_ONE_MINUTE = 20; // events per minute
 export const FLUSH_TIMEOUT_MINUTES = 30;
 
 export const MAX_BATCH_CAPACITY =
