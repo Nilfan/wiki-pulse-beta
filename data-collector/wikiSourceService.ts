@@ -1,12 +1,11 @@
 /// <reference lib="deno.ns" />
-import { SAMPLE_RATE, MAX_BATCH_CAPACITY, BATCH_ADD_THROTTLE_MS, FLUSH_TIMEOUT_MS } from "../lib/collector-config.ts";
+import { MAX_BATCH_CAPACITY, BATCH_ADD_THROTTLE_MS, FLUSH_TIMEOUT_MS } from "../lib/collector-config.ts";
 
 import { EventSource } from "eventsource";
 import { WIKI_ORG } from "../prisma/constants.ts";
 import { Prisma, PrismaClient } from "../generated/prisma/client.ts";
 
 import { getLanguageFromServerUrl } from "./get-language-from-server-url.ts";
-import { oneIn } from "./random-int.ts";
 import {
   log,
   getErrorText,
@@ -24,25 +23,27 @@ const EVENT_SOURCE_URL = "https://stream.wikimedia.org/v2/stream/recentchange";
 const EVENT_IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 min
 const HEALTH_CHECK_INTERVAL_MS = 15 * 1000; // 15 sec
 
-class WikiSourceService {
+export class WikiSourceService {
   prismaClient: PrismaClient;
   wikiOrg: Prisma.OrganizationCreateInput | null = null;
   eventSource?: EventSource;
   eventBatch: WikiEvent[] = [];
-  lastFlushTime: number | undefined;
-  lastBatchAddTime: number | undefined;
+  private lastSampleSlot: number | undefined;
+  private flushTimer?: ReturnType<typeof setInterval>;
+  private pendingFlush?: Promise<void>;
+  private retryBatch: WikiEvent[] = [];
 
   private reconnectAttempt = 0;
   private reconnectTimer?: ReturnType<typeof setTimeout>;
   private healthCheckTimer?: ReturnType<typeof setInterval>;
   private lastEventReceivedAt?: number;
 
-  constructor() {
-    this.prismaClient = getPrismaClient();
+  constructor(prismaClient = getPrismaClient()) {
+    this.prismaClient = prismaClient;
   }
 
   openEventChannel() {
-    log(`Open event channel, sample rate 1/${SAMPLE_RATE}`);
+    log(`Open event channel, one sample per ${BATCH_ADD_THROTTLE_MS} ms slot`);
     const wikiOrgId = this.wikiOrg?.id;
 
     if (this.wikiOrg === null || !wikiOrgId) {
@@ -78,7 +79,7 @@ class WikiSourceService {
     this.lastEventReceivedAt = Date.now();
     this.startHealthCheck(eventSource);
 
-    this.lastFlushTime ??= Date.now();
+    this.startFlushTimer();
 
     log(`Listen to event channel`);
 
@@ -115,62 +116,56 @@ class WikiSourceService {
       }
 
       this.lastEventReceivedAt = Date.now();
-      this.flushEventsOnMessage();
-      this.addEventToBatchOnMessage(rawEvent);
+      try {
+        this.addEventToBatchOnMessage(rawEvent);
+      } catch (err) {
+        error("Invalid stream event", err);
+      }
     };
   }
 
-  private flushEventsOnMessage() {
-    if (this.lastFlushTime === undefined) {
-      throw new Error(getErrorText("lastFlushTime must be defined"));
-    }
+  private startFlushTimer() {
+    this.flushTimer ??= setInterval(() => {
+      void this.flushBatch().catch((err) => error("Error on flush events", err));
+    }, FLUSH_TIMEOUT_MS);
+  }
 
-    const wikiOrgId = this.wikiOrg?.id;
+  flushBatch(): Promise<void> {
+    if (this.pendingFlush) return this.pendingFlush;
+    const orgId = this.wikiOrg?.id;
+    if (!orgId) return Promise.reject(new Error(getErrorText("Wiki org must be defined on flush")));
 
-    if (!wikiOrgId) {
-      throw new Error(getErrorText("Wiki org must be defined on flush"));
-    }
-
-    const isFlushTimeoutHappen =
-      Date.now() - this.lastFlushTime > FLUSH_TIMEOUT_MS;
-
-    if (isFlushTimeoutHappen) {
-      this.lastFlushTime = Date.now();
-      const date = new Date(this.lastFlushTime);
-      const flushTime = getTime(date);
-
-      log(`Flush events: ${flushTime}`);
-      this.flushEvents(wikiOrgId, [...this.eventBatch]).catch((err) => {
-        log(`Error on flush events: ${err}`);
-      });
-      this.eventBatch = [];
-    }
+    // Keep a failed write separate so collection can continue at its normal cadence.
+    const events = [...this.retryBatch, ...this.eventBatch];
+    if (events.length === 0) return Promise.resolve();
+    this.retryBatch = [];
+    this.eventBatch = [];
+    log(`Flush ${events.length} events: ${getTime(new Date())}`);
+    this.pendingFlush = this.flushEvents(orgId, events)
+      .catch((err) => {
+        this.retryBatch = events;
+        throw err;
+      })
+      .finally(() => { this.pendingFlush = undefined; });
+    return this.pendingFlush;
   }
 
   private addEventToBatchOnMessage(rawEvent: MessageEvent) {
-    const isInSampleRate = oneIn(SAMPLE_RATE);
-
-    if (!isInSampleRate || MAX_BATCH_CAPACITY <= this.eventBatch.length) {
-      return;
-    }
-
-    const eventAppearanceTime = Date.now();
-
-    if (
-      this.lastBatchAddTime !== undefined &&
-      eventAppearanceTime - this.lastBatchAddTime < BATCH_ADD_THROTTLE_MS
-    ) {
-      return;
-    }
+    const sampleSlot = Math.floor(Date.now() / BATCH_ADD_THROTTLE_MS);
+    if (sampleSlot === this.lastSampleSlot || this.eventBatch.length >= MAX_BATCH_CAPACITY) return;
 
     const {
       type,
       title,
       title_url,
       server_url,
-      dt: timestamp,
+      meta,
+      dt,
+      timestamp: unixTimestamp,
     } = JSON.parse(rawEvent.data);
 
+    const timestamp = new Date(meta?.dt ?? dt ?? unixTimestamp * 1000);
+    if (!Number.isFinite(timestamp.getTime())) throw new Error("Missing or invalid event timestamp");
     const path = title_url.replace(server_url, "");
     const country = getLanguageFromServerUrl(server_url);
 
@@ -185,7 +180,7 @@ class WikiSourceService {
     };
 
     this.eventBatch.push(event);
-    this.lastBatchAddTime = eventAppearanceTime;
+    this.lastSampleSlot = sampleSlot;
     log(`Add to batch: ${this.eventBatch.length}/${MAX_BATCH_CAPACITY}`);
   }
 
@@ -235,13 +230,21 @@ class WikiSourceService {
   }
 
   subscribeDenoSignal() {
-    Deno.addSignalListener("SIGINT", () => {
-      if (this.wikiOrg?.id) {
-        this.flushEvents(this.wikiOrg.id, [...this.eventBatch]);
+    const shutdown = async () => {
+      this.closeEventChannel();
+      if (this.flushTimer) clearInterval(this.flushTimer);
+      try {
+        await this.pendingFlush;
+        await this.flushBatch();
+        await this.prismaClient.$disconnect();
+        Deno.exit(0);
+      } catch (err) {
+        error("Shutdown flush failed", err);
+        Deno.exit(1);
       }
-
-      Deno.exit(0);
-    });
+    };
+    Deno.addSignalListener("SIGINT", shutdown);
+    Deno.addSignalListener("SIGTERM", shutdown);
   }
 
   private scheduleReconnect() {
@@ -295,8 +298,3 @@ class WikiSourceService {
     }, HEALTH_CHECK_INTERVAL_MS);
   }
 }
-
-const wikiSourceService = new WikiSourceService();
-await wikiSourceService.init();
-
-export { wikiSourceService };

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  SAMPLE_RATE, BATCH_ADD_THROTTLE_MS, MAX_BATCH_CAPACITY, FLUSH_TIMEOUT_MS,
+  MAX_EVENTS_PER_ONE_MINUTE, BATCH_ADD_THROTTLE_MS, MAX_BATCH_CAPACITY, FLUSH_TIMEOUT_MS,
   CLEARANCE_DB_PERIOD_DAYS, CLEARANCE_PERIOD_HOURS,
 } from "@/lib/collector-config";
 import { MAX_SERIES } from "@/lib/queries/constants";
@@ -20,11 +20,11 @@ export default function FlowPage() {
     },
     {
       title: "02 / Reduce incoming volume",
-      text: `Each incoming event has a 1-in-${SAMPLE_RATE} chance of passing the random sampler: ${(100 / SAMPLE_RATE).toFixed(2)}% kept and ${(100 * (1 - 1 / SAMPLE_RATE)).toFixed(2)}% rejected on average at this stage. A full batch rejects candidates too. Then a time gate discards candidates arriving less than ${BATCH_ADD_THROTTLE_MS.toLocaleString("en-US")} ms after the last accepted event. These checks reduce volume; they do not select topics or event types.`,
+      text: `The collector accepts the first valid event in each ${BATCH_ADD_THROTTLE_MS.toLocaleString("en-US")} ms time slot, targeting ${MAX_EVENTS_PER_ONE_MINUTE} events per minute while the stream is active. Empty slots stay empty; reconnecting does not trigger catch-up bursts. Sampling does not select topics or event types.`,
     },
     {
       title: "03 / Save a bounded batch",
-      text: `Accepted events are mapped to type, path, host, wiki language, timestamp and title, then queued up to ${MAX_BATCH_CAPACITY} events. The first incoming message after ${FLUSH_TIMEOUT_MS / 60000} minutes triggers a PostgreSQL insert of the previous batch. The time gate allows roughly ${(1000 / BATCH_ADD_THROTTLE_MS).toFixed(2)} events per second at most over sustained traffic, so a regular five-minute window usually reaches the time limit before the batch cap.`,
+      text: `Accepted events retain their source timestamp and are queued up to ${MAX_BATCH_CAPACITY} events. An independent timer writes the batch to PostgreSQL every ${FLUSH_TIMEOUT_MS / 60000} minutes, even if the stream is idle or reconnecting. Failed batches are retained for the next flush. The latest interval remains unavailable to analytics until it is saved.`,
     },
     {
       title: "04 / Explore the sample",

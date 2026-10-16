@@ -6,7 +6,8 @@
   "packageManager": "pnpm@10.24.0",
   "scripts": {
     "start": "deno run --env-file=../.env -R -E --allow-net --allow-sys index.ts",
-    "check": "deno check index.ts"
+    "check": "deno check index.ts",
+    "test": "deno test --allow-env --allow-sys wikiSourceService.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",

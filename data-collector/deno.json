@@ -1,4 +1,7 @@
 {
+  "imports": {
+    "@prisma/client/runtime/client": "npm:@prisma/client@^7.8.0/runtime/client"
+  },
   "nodeModulesDir": "manual",
   "unstable": ["sloppy-imports"],
   "compilerOptions": {

@@ -3,7 +3,7 @@
 import { useId } from "react";
 import { linkHorizontal, linkVertical } from "d3";
 import {
-  SAMPLE_RATE, BATCH_ADD_THROTTLE_MS, FLUSH_TIMEOUT_MS, MAX_BATCH_CAPACITY,
+  MAX_EVENTS_PER_ONE_MINUTE, BATCH_ADD_THROTTLE_MS, FLUSH_TIMEOUT_MS, MAX_BATCH_CAPACITY,
   CLEARANCE_DB_PERIOD_DAYS, CLEARANCE_PERIOD_HOURS,
 } from "@/lib/collector-config";
 
@@ -14,10 +14,10 @@ const width = 260;
 const height = 112;
 const nodes = [
   { id: "source", x: 40, y: 72, title: "Wikimedia SSE", value: "RecentChanges", detail: "Incoming public change events" },
-  { id: "sample", x: 40, y: 310, title: "Random sampler", value: `1 in ${SAMPLE_RATE} passes`, detail: `${format(100 / SAMPLE_RATE)}% kept on average` },
+  { id: "sample", x: 40, y: 310, title: "Time-slot sampler", value: `${MAX_EVENTS_PER_ONE_MINUTE} events / minute`, detail: "First valid event in each time slot" },
   { id: "capacity", x: 420, y: 310, title: "Batch capacity guard", value: `${MAX_BATCH_CAPACITY} events max`, detail: "Full batch → candidate discarded" },
-  { id: "throttle", x: 800, y: 310, title: "Time gate", value: `${format(BATCH_ADD_THROTTLE_MS)} ms apart`, detail: "Too soon → candidate discarded" },
-  { id: "batch", x: 800, y: 548, title: "Map + batch", value: `${FLUSH_TIMEOUT_MS / 60000}-minute threshold`, detail: "Next message triggers batch insert" },
+  { id: "throttle", x: 800, y: 310, title: "Source timestamp", value: "Preserve event time", detail: "Invalid events are skipped" },
+  { id: "batch", x: 800, y: 548, title: "Map + batch", value: `${FLUSH_TIMEOUT_MS / 60000}-minute threshold`, detail: "Independent timer triggers insert" },
   { id: "database", x: 420, y: 548, title: "PostgreSQL", value: `${CLEARANCE_DB_PERIOD_DAYS}-day history`, detail: `Cleanup every ${CLEARANCE_PERIOD_HOURS} hours` },
   { id: "analytics", x: 40, y: 548, title: "Brief analytics", value: "Filter + group", detail: "Totals, trends and breakdowns" },
 ];
@@ -41,7 +41,7 @@ export function FlowMap() {
       </div>
       <div className="overflow-x-auto p-3">
         <svg viewBox="0 0 1100 730" className="w-full min-w-[760px]" role="img" aria-labelledby={`${id}-caption ${id}-description`}>
-          <desc id={`${id}-description`}>Three levels: ingestion; random sampling, batch capacity and time filtering; then batching, storage and analytics. Arrows follow the collector’s execution order. Connections show sequence, not proportional volume.</desc>
+          <desc id={`${id}-description`}>Three levels: ingestion; time-slot sampling, batch capacity and timestamp validation; then batching, storage and analytics. Arrows follow the collector’s execution order. Connections show sequence, not proportional volume.</desc>
           <defs>
             <marker id={`${id}-arrow`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
@@ -78,12 +78,12 @@ export function FlowMap() {
               </g>
             );
           })}
-          <text x="170" y="451" textAnchor="middle" className="fill-ink-soft text-[12px]">{format(100 * (1 - 1 / SAMPLE_RATE))}% rejected on average</text>
+          <text x="170" y="451" textAnchor="middle" className="fill-ink-soft text-[12px]">One sample per {format(BATCH_ADD_THROTTLE_MS)} ms slot</text>
           <text x="930" y="451" textAnchor="middle" className="fill-ink-soft text-[12px]">≤ {format(1000 / BATCH_ADD_THROTTLE_MS)} accepted / sec sustained</text>
         </svg>
       </div>
       <p className="border-t border-rule p-5 text-xs leading-relaxed text-ink-soft">
-        Sampling percentages are expected averages. Later gates reduce the sample further;
+        The sampling target assumes an active stream. Empty time slots stay empty;
         the collector does not record discard counts. Arrows show processing order, not event volume.
       </p>
     </figure>
