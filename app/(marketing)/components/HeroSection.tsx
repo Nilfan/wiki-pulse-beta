@@ -50,12 +50,12 @@ export const HeroSection = () => (
           >
             Open dashboard
           </Link>
-          <a
-            href="#how-it-works"
+          <Link
+            href="/flow"
             className="font-data inline-block border border-ink px-5 py-3 text-[13px] hover:bg-shell"
           >
             How it works
-          </a>
+          </Link>
         </div>
         <p
           className="font-data mt-6.5 text-[11.5px] text-ink-faint tracking-[0.02em]"
