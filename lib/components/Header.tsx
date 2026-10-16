@@ -3,7 +3,7 @@ import { ControlTab } from "@/lib/components/ControlTab";
 
 const TABS: { title: string; link: string; prefetch?: boolean }[] = [
   { title: "Product", link: "/", prefetch: true },
-  { title: "Pricing", link: "/pricing", prefetch: true },
+  { title: "Flow", link: "/flow", prefetch: true },
   { title: "Dashboard", link: "/dashboard" },
 ];
 

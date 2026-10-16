@@ -1,5 +1,6 @@
 import { DURATION_MS } from "@/lib/queries/constants";
-import type { DashboardSearchParams } from "@/lib/queries/events";
+import type { DashboardSearchParams } from "@/lib/queries/dashboardSearchParams";
+import type { DashboardPeriod } from "@/lib/queries/timeWindow";
 import type { ChartRow, ChartSeries, ChartType } from "./chartSeries";
 
 /** How many labels the time axis carries, endpoints included. */
@@ -42,9 +43,13 @@ function trimZero(value: number) {
   return value.toFixed(1).replace(/\.0$/, "");
 }
 
+const CUSTOM_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
+});
+
 export function getTimeFormatter(range: DashboardSearchParams["range"]) {
   const formatter =
-    DURATION_MS[range] > DATE_LABEL_FROM_MS ? DATE_FORMATTER : TIME_FORMATTER;
+    range === "custom" ? CUSTOM_TIME_FORMATTER : DURATION_MS[range] > DATE_LABEL_FROM_MS ? DATE_FORMATTER : TIME_FORMATTER;
 
   return (timestamp: number) => formatter.format(new Date(timestamp));
 }
@@ -129,8 +134,13 @@ const RANGE_LABELS: Record<DashboardSearchParams["range"], string> = {
   "14d": "last 14 days",
   "21d": "last 21 days",
   "60d": "last 60 days",
+  custom: "custom period",
 };
 
-export function getRangeLabel(range: DashboardSearchParams["range"]) {
+export function getRangeLabel({ range, start, end }: DashboardPeriod) {
+  if (range === "custom" && start && end) {
+    const format = (iso: string) => iso.replace("T", " ").replace(/\.000Z$/, "").replace(/Z$/, "");
+    return `${format(start)} – ${format(end)} UTC`;
+  }
   return RANGE_LABELS[range];
 }

@@ -1,4 +1,5 @@
 import * as v from "valibot";
+import { getCustomPeriodError } from "./timeWindow";
 import {
   RANGE_OPTIONS,
   INTERVAL_OPTIONS,
@@ -28,7 +29,9 @@ const FilterValuesSchema = v.fallback(
 );
 
 const DashboardSearchParamsSchema = v.object({
-  range: v.fallback(v.picklist(RANGE_OPTIONS), "24h"),
+  range: v.fallback(v.picklist([...RANGE_OPTIONS, "custom"]), "24h"),
+  start: v.fallback(v.optional(v.string()), undefined),
+  end: v.fallback(v.optional(v.string()), undefined),
   interval: v.fallback(v.picklist(INTERVAL_OPTIONS), "15m"),
   eventType: FilterValuesSchema,
   page: FilterValuesSchema,
@@ -83,12 +86,22 @@ export function parseDashboardSearchParams(
 ): DashboardSearchParams {
   const validObject = v.parse(DashboardSearchParamsSchema, {
     range: getSingleSearchParam(searchParams.range),
+    start: getSingleSearchParam(searchParams.start),
+    end: getSingleSearchParam(searchParams.end),
     interval: getSingleSearchParam(searchParams.interval),
     eventType: getMultiSearchParam(searchParams.eventType),
     page: getMultiSearchParam(searchParams.page),
     country: getMultiSearchParam(searchParams.country),
     groupBy: getMultiSearchParam(searchParams.groupBy),
   });
+
+  if (validObject.range === "custom" && getCustomPeriodError(validObject.start, validObject.end)) {
+    validObject.range = "24h";
+  }
+  if (validObject.range !== "custom") {
+    validObject.start = undefined;
+    validObject.end = undefined;
+  }
 
   // The filters strip their own dimension from groupBy when they are set; this
   // covers a URL that was put together by hand.
@@ -142,10 +155,14 @@ export function serializeDashboardSearchParams(
  * without interval or groupBy, which only reshape the chart.
  */
 export function serializeDashboardFilters(
-  params: Pick<DashboardSearchParams, "range"> & DashboardFilters,
+  params: Pick<DashboardSearchParams, "range" | "start" | "end"> & DashboardFilters,
 ): string {
   const searchParams = new URLSearchParams();
   searchParams.set("range", params.range);
+  if (params.range === "custom" && params.start && params.end) {
+    searchParams.set("start", params.start);
+    searchParams.set("end", params.end);
+  }
   for (const name of ["eventType", "page", "country"] as const) {
     for (const value of params[name]) searchParams.append(name, value);
   }

@@ -1,12 +1,16 @@
 import { prisma } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
-import { DURATION_MS, MAX_SERIES, SERIES_ALIGNMENT_MS } from "./constants";
+import { DURATION_MS, MAX_SERIES } from "./constants";
 import { DIMENSION_SQL, getEventFiltersSql } from "./eventFilters";
 import type {
   DashboardGroupBy,
   DashboardSearchParams,
 } from "./dashboardSearchParams";
 import { cacheLife, cacheTag } from "next/cache";
+import type { TimeWindow } from "./timeWindow";
+
+export { getTimeWindow } from "./timeWindow";
+export type { TimeWindow } from "./timeWindow";
 
 // Re-exported so server-side callers can keep reaching for the whole events
 // API from one module. Client components must import these from
@@ -75,32 +79,6 @@ export function toEventsSeriesWire(
     total: series.total,
     groupCount: series.groupCount,
     untilMs: timeWindow.until.getTime(),
-  };
-}
-
-export type TimeWindow = {
-  since: Date;
-  until: Date;
-};
-
-/**
- * Must be called outside of any cached scope: both bounds become part of the
- * getEventsSeries cache key, whereas a `Date.now()` inside "use cache" would
- * freeze at the moment the entry was filled.
- *
- * `until` is floored to SERIES_ALIGNMENT_MS so every request landing in the
- * same slot produces the same key. getEventsSeries then hangs its bucket grid
- * off that bound, which keeps the grid aligned for any interval.
- */
-export function getTimeWindow(
-  range: DashboardSearchParams["range"],
-): TimeWindow {
-  const untilMs =
-    Math.floor(Date.now() / SERIES_ALIGNMENT_MS) * SERIES_ALIGNMENT_MS;
-
-  return {
-    until: new Date(untilMs),
-    since: new Date(untilMs - DURATION_MS[range]),
   };
 }
 

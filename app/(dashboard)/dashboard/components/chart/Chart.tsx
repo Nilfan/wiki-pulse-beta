@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import clsx from "clsx";
 import {
   Area,
@@ -20,6 +20,10 @@ import {
   searchParamsFromURLSearchParams,
   serializeDashboardSearchParams,
 } from "@/lib/queries/dashboardSearchParams";
+import { DURATION_MS } from "@/lib/queries/constants";
+import { getTimeWindow } from "@/lib/queries/timeWindow";
+import { setDashboardSearchParams } from "../filters/useDashboardFilter";
+import ChartRangeSelection from "./ChartRangeSelection";
 import CacheBadge from "./CacheBadge";
 import ChartCursor from "./ChartCursor";
 import ChartLegend from "./ChartLegend";
@@ -60,6 +64,8 @@ const SERIES_ANIMATION = {
 } as const;
 
 export default function Chart({ initialSeries }: Props) {
+  const [rangeOverlayContainer, setRangeOverlayContainer] = useState<HTMLDivElement | null>(null);
+  const [isRangeSelecting, setIsRangeSelecting] = useState(false);
   const [chartType, setChartType] = useState<ChartType>("line");
   // Series switched off from the legend, by key. Cleared on a filter change.
   const [hiddenKeys, setHiddenKeys] = useState<ReadonlySet<string>>(
@@ -76,6 +82,7 @@ export default function Chart({ initialSeries }: Props) {
   // The URL is the filter state. Reading it here rather than taking it as a
   // prop means a filter change reaches the chart without a navigation — see
   // useDashboardFilter.
+  const pathname = usePathname();
   const rawSearchParams = useSearchParams();
   const params = useMemo(
     () =>
@@ -125,17 +132,17 @@ export default function Chart({ initialSeries }: Props) {
   // URL: between a groupBy change and its response the two differ, and
   // regrouping the old points by the new dimension would draw a throwaway
   // "unknown" series before the real ones land — the chart redrawing twice.
-  const loadedGroupBy = useMemo(
+  const loadedParams = useMemo(
     () =>
       parseDashboardSearchParams(
         searchParamsFromURLSearchParams(new URLSearchParams(loadedQueryString)),
-      ).groupBy,
+      ),
     [loadedQueryString],
   );
 
   const { rows, series, droppedSeriesCount } = useMemo(
-    () => buildChartData(events, loadedGroupBy, groupCount),
-    [events, loadedGroupBy, groupCount],
+    () => buildChartData(events, loadedParams.groupBy, groupCount),
+    [events, loadedParams.groupBy, groupCount],
   );
 
   // Filtered after buildChartData, so a hidden series keeps its colour slot.
@@ -143,6 +150,8 @@ export default function Chart({ initialSeries }: Props) {
     () => series.filter(({ key }) => !hiddenKeys.has(key)),
     [series, hiddenKeys],
   );
+
+  const loadedWindow = getTimeWindow(loadedParams, untilMs);
 
   const formatTime = useMemo(() => getTimeFormatter(range), [range]);
   const timeTicks = useMemo(() => getTimeTicks(rows), [rows]);
@@ -174,17 +183,17 @@ export default function Chart({ initialSeries }: Props) {
       <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
         <div>
           <p className="font-data text-[11px] tracking-[0.14em] text-ink-3 uppercase">
-            events · {getRangeLabel(range)}
+            events · {getRangeLabel(params)}
           </p>
           <p className="mt-1.5 font-display text-[44px] leading-none font-bold tracking-[-0.02em] text-ink tabular-nums">
             {formatTotal(total)}
           </p>
           <p className="mt-2.5 font-data text-[12.5px] text-ink-3">
-            — enable compare for a delta
+            Drag to select a period, then Apply range to confirm. Escape cancels.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <CacheBadge untilMs={untilMs} isLoading={isLoading} />
+          <CacheBadge untilMs={untilMs} isLoading={isLoading} fixedPeriod={range === "custom"} />
           <ChartTypeTabs value={chartType} onChange={setChartType} />
           <RefreshButton onClick={refresh} isLoading={isLoading} />
         </div>
@@ -195,10 +204,10 @@ export default function Chart({ initialSeries }: Props) {
           No events in this window.
         </p>
       ) : (
-        <>
+        <div ref={setRangeOverlayContainer} className="relative">
           <div
             className={clsx(
-              "mt-6 h-65 transition-opacity",
+              "mt-6 h-65 select-none transition-opacity",
               isLoading && "opacity-45",
             )}
           >
@@ -235,8 +244,9 @@ export default function Chart({ initialSeries }: Props) {
                 axisLine={false}
               />
               <Tooltip
+                active={isRangeSelecting ? false : undefined}
                 content={ChartTooltip}
-                cursor={<ChartCursor />}
+                cursor={isRangeSelecting ? false : <ChartCursor />}
                 isAnimationActive={false}
               />
               {visibleSeries.map(({ key, label, color }) => {
@@ -288,6 +298,16 @@ export default function Chart({ initialSeries }: Props) {
                   />
                 );
               })}
+              <ChartRangeSelection
+                key={`${queryString}:${untilMs}:${chartType}`}
+                overlayContainer={rangeOverlayContainer}
+                onSelectingChange={setIsRangeSelecting}
+                intervalMs={DURATION_MS[loadedParams.interval]}
+                sinceMs={loadedWindow.since.getTime()}
+                untilMs={untilMs}
+                disabled={isLoading || loadedQueryString !== queryString}
+                onSelect={(start, end) => setDashboardSearchParams(pathname, { range: "custom", start, end })}
+              />
             </ComposedChart>
           </div>
           <ChartLegend
@@ -296,7 +316,7 @@ export default function Chart({ initialSeries }: Props) {
             onToggle={toggleSeries}
             droppedSeriesCount={droppedSeriesCount}
           />
-        </>
+        </div>
       )}
     </div>
   );

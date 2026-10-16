@@ -1,8 +1,7 @@
 import { PrismaClient } from "../generated/prisma/client.ts";
 import { getPrismaClient } from "./get-prisma-client.ts";
 
-const CLEARANCE_DB_PERIOD_DAYS = 7;
-const CLEARANCE_PERIOD_HOURS = 6;
+import { CLEARANCE_DB_PERIOD_DAYS, CLEARANCE_PERIOD_HOURS } from "../lib/collector-config.ts";
 
 class IntervalDbCleaner {
   cleanerInterval?: ReturnType<typeof setInterval>;

@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 type Props = {
   untilMs: number;
   isLoading?: boolean;
+  fixedPeriod?: boolean;
 };
 
 const REFRESH_MS = 30_000;
@@ -22,18 +23,19 @@ function formatAge(ageMs: number) {
   return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
 }
 
-export default function CacheBadge({ untilMs, isLoading = false }: Props) {
+export default function CacheBadge({ untilMs, isLoading = false, fixedPeriod = false }: Props) {
   // Rendered empty on the server: the age depends on the current clock, which
   // would differ between the two passes and trip hydration.
   const [age, setAge] = useState<string | null>(null);
 
   useEffect(() => {
+    if (fixedPeriod) return;
     const update = () => setAge(formatAge(Date.now() - untilMs));
     update();
 
     const timer = setInterval(update, REFRESH_MS);
     return () => clearInterval(timer);
-  }, [untilMs]);
+  }, [untilMs, fixedPeriod]);
 
   if (isLoading) {
     return (
@@ -45,7 +47,7 @@ export default function CacheBadge({ untilMs, isLoading = false }: Props) {
 
   return (
     <span className="border border-brand/45 px-2 py-1.5 font-data text-[11.5px] text-brand tabular-nums">
-      cached{age ? ` · ${age}` : ""}
+      {fixedPeriod ? "fixed period" : `cached${age ? ` · ${age}` : ""}`}
     </span>
   );
 }

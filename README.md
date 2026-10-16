@@ -6,9 +6,9 @@ Wiki Pulse listens to the public [Wikimedia RecentChanges stream](https://stream
 
 ## Features
 
-- **Live data.** A Deno worker samples Wikipedia edits and writes them in batches. Rows older than 7 days are deleted.
+- **Live data.** A Deno worker samples Wikipedia edits and writes them in batches. Rows older than 21 days are deleted.
 - **Dashboard chart.** Line, area, bar and stacked-bar views, with up to 10 series. Click a legend item to hide or show its series.
-- **Filters that live in the URL.** Range (`15m` to `60d`), interval, event type and group-by. Filter changes are debounced, and a request that is superseded is aborted.
+- **Filters that live in the URL.** Range (`15m` to `60d`, or a custom start/end period up to 60 days), interval, event type and group-by. Custom periods use local date-time pickers and persist as exact UTC timestamps in the URL. Hold the left mouse button and drag across the chart to select a custom period, then confirm with Apply range. Cancel or Escape discards the selection. Filter changes are debounced, and a request that is superseded is aborted.
 - **Insights and by-type tables.** Headline totals (events, wikis, paths) and a breakdown by event type.
 - **Caching.** Queries run behind Next.js `"use cache"`. The dashboard refreshes in the background every 5 minutes, and the Refresh button drops the cache first.
 - **Event tracking.** `POST /api/track` plus `public/tracker.js`, which sends a `pageview` on load and exposes `window.wikipulse()` for custom events.
@@ -86,7 +86,7 @@ pnpm dev                     # http://localhost:3000
 pnpm start:data-collector    # in a second terminal: stream Wikipedia edits into the DB
 ```
 
-Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard). The collector flushes a batch every 5 minutes, so new edits show up after the first flush.
+Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard). The collector flushes a batch every 30 minutes, so new edits show up after the first flush.
 
 ## Scripts
 
@@ -103,7 +103,7 @@ Open [http://localhost:3000/dashboard](http://localhost:3000/dashboard). The col
 
 ```
 app/
-  (marketing)/          Landing (/) and pricing (/pricing) pages
+  (marketing)/          Landing (/) and pipeline flow (/flow) pages
   (dashboard)/
     dashboard/          Dashboard page: filters, chart, extra tables
     alerts/             Placeholder
@@ -115,7 +115,7 @@ lib/
   queries/              SQL queries, cache setup, filter parsing
   db/                   Shared Prisma client
   components/           Shared UI (header, footer, logo)
-data-collector/         Deno worker: Wikimedia SSE → batched inserts, 7-day cleanup
+data-collector/         Deno worker: Wikimedia SSE → batched inserts, 21-day cleanup
 prisma/                 Schema, seed, and the database handbook
 public/tracker.js       Browser tracking snippet
 ```

@@ -20,7 +20,7 @@ type Props = {
 export default async function ExtraTablesWrapper(props: Props) {
   const searchParams = parseDashboardSearchParams(await props.searchParams);
   const wikiOrgId = await getWikiOrgId();
-  const timeWindow = getTimeWindow(searchParams.range);
+  const timeWindow = getTimeWindow(searchParams);
 
   const orgId = wikiOrgId.toString();
 

@@ -1,26 +1,25 @@
-
 const GRID_BLOCKS = [
   {
-    topic: "type · path · host",
-    title: "Three axes, always indexed",
+    topic: "01 / activity",
+    title: "See the pace of change",
     content:
-      "What happened, where it happened, and on which domain — stored as real columns, not buried in a JSON blob. Top pages and funnels stay quick as the table grows.",
+      "Get a quick overview of collected events, active wikis and pages. Chart activity over time to see how the stream changes throughout the day.",
   },
   {
-    topic: "properties",
-    title: "Room for the odd question",
+    topic: "02 / breakdowns",
+    title: "Find the details that matter",
     content:
-      "Attach anything else you need per event. It's there when you dig into one account, and it never slows down the charts everyone looks at daily.",
+      "Filter by time range and event type, then group by event, page or wiki language. Switch between chart views to compare activity from different angles.",
   },
   {
-    topic: "stream",
-    title: "Watch it arrive",
+    topic: "03 / recent events",
+    title: "Look behind the numbers",
     content:
-      "Ship a change and see the events land, live, while the rest of the dashboard stays put. Useful the moment you're checking whether tracking actually works.",
+      "Browse the recent event feed alongside the summaries. See the page, event type and wiki language behind each collected change.",
   },
 ];
 
-export const FeetSection = () => (
+export const FeaturesSection = () => (
   <section className="py-[clamp(44px,6vw,72px)]">
     <div className="max-w-maxw my-0 mx-auto py-0 px-gut">
       <div className="grid grid-cols-1 min-[901px]:grid-cols-3 gap-0 border-t border-t-rule [&>*:first-child]:pl-0 [&>*:last-child]:border-r-0 [&>*:last-child]:pr-0">
@@ -34,11 +33,11 @@ export const FeetSection = () => (
             >
               {topic}
             </p>
-            <h3
+            <h2
               className="font-display font-medium text-[15px] tracking-tighter mx-0 mt-0 mb-2.25 leading-[19.5px]"
             >
               {title}
-            </h3>
+            </h2>
             <p className="m-0 text-[14.5px] text-ink-soft leading-[21.75px]">
               {content}
             </p>

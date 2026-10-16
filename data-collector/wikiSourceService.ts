@@ -1,4 +1,5 @@
 /// <reference lib="deno.ns" />
+import { SAMPLE_RATE, MAX_BATCH_CAPACITY, BATCH_ADD_THROTTLE_MS, FLUSH_TIMEOUT_MS } from "../lib/collector-config.ts";
 
 import { EventSource } from "eventsource";
 import { WIKI_ORG } from "../prisma/constants.ts";
@@ -20,10 +21,6 @@ type WikiEvent = Pick<
 >;
 
 const EVENT_SOURCE_URL = "https://stream.wikimedia.org/v2/stream/recentchange";
-const SAMPLE_RATE = 30;
-const MAX_BATCH_CAPACITY = 200;
-const BATCH_ADD_THROTTLE_MS = 1700; // ~ 1000/0.6ms
-const FLUSH_TIMEOUT_MS = 5 * 60 * 1000; // 5 min
 const EVENT_IDLE_TIMEOUT_MS = 2 * 60 * 1000; // 2 min
 const HEALTH_CHECK_INTERVAL_MS = 15 * 1000; // 15 sec
 

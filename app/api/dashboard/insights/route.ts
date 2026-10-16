@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     searchParamsFromURLSearchParams(request.nextUrl.searchParams),
   );
   const wikiOrgId = await getWikiOrgId();
-  const timeWindow = getTimeWindow(searchParams.range);
+  const timeWindow = getTimeWindow(searchParams);
 
   const body: InsightsResponse = await getInsights(
     wikiOrgId.toString(),

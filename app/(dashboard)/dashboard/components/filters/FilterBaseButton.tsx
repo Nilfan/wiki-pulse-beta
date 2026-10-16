@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 export type FilterOption = {
   value: string;
@@ -20,6 +20,10 @@ type FilterBaseButtonProps = {
   multiple?: boolean;
   menuLabel?: string;
   menuHeader?: string;
+  optionContent?: {
+    value: string;
+    render: (close: () => void, showOptions: () => void) => ReactNode;
+  };
 };
 
 export default function FilterBaseButton({
@@ -31,12 +35,24 @@ export default function FilterBaseButton({
   multiple = false,
   menuLabel,
   menuHeader,
+  optionContent,
 }: FilterBaseButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [showOptionContent, setShowOptionContent] = useState(false);
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  function closeMenu() {
+    setIsOpen(false);
+    document.getElementById(`${menuId}-trigger`)?.focus();
+  }
+
+  function openMenu() {
+    setShowOptionContent(Boolean(optionContent && selectedValues.includes(optionContent.value)));
+    setIsOpen(true);
+  }
 
   useEffect(() => {
     if (!isOpen) return;
@@ -81,6 +97,11 @@ export default function FilterBaseButton({
   }
 
   function selectOption(optionValue: string) {
+    if (optionContent?.value === optionValue) {
+      setShowOptionContent(true);
+      requestAnimationFrame(() => rootRef.current?.querySelector<HTMLElement>("input, form button")?.focus());
+      return;
+    }
     if (!multiple) {
       onValueChange([optionValue]);
       setIsOpen(false);
@@ -98,16 +119,21 @@ export default function FilterBaseButton({
     <div ref={rootRef} className="relative">
       <button
         ref={triggerRef}
+        id={`${menuId}-trigger`}
         type="button"
         aria-expanded={isOpen}
         aria-controls={menuId}
-        aria-haspopup="menu"
-        onClick={() => setIsOpen((open) => !open)}
+        aria-haspopup={optionContent ? "dialog" : "menu"}
+        onClick={() => isOpen ? closeMenu() : openMenu()}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") {
             event.preventDefault();
-            setIsOpen(true);
+            openMenu();
             requestAnimationFrame(() => {
+              if (optionContent && selectedValues.includes(optionContent.value)) {
+                rootRef.current?.querySelector<HTMLElement>("input, form button")?.focus();
+                return;
+              }
               const selectedIndex = options.findIndex((option) =>
                 selectedValues.includes(option.value),
               );
@@ -129,10 +155,20 @@ export default function FilterBaseButton({
       {isOpen ? (
         <div
           id={menuId}
-          role="menu"
+          role={optionContent ? "dialog" : "menu"}
           aria-label={menuLabel ?? `${name ?? value} options`}
-          className="absolute left-0 top-[calc(100%+4px)] z-50 min-w-60 overflow-hidden border border-ink bg-white p-1 shadow-[3px_3px_0_var(--color-ink)]"
+          className={clsx(
+            "absolute left-0 top-[calc(100%+4px)] z-50 min-w-60 max-h-[min(70dvh,36rem)] overflow-y-auto border border-ink bg-white p-1 shadow-[3px_3px_0_var(--color-ink)]",
+            showOptionContent && optionContent && "w-[min(22rem,calc(100vw-3rem))]",
+          )}
         >
+          {showOptionContent && optionContent ? optionContent.render(closeMenu, () => {
+            setShowOptionContent(false);
+            requestAnimationFrame(() => {
+              document.getElementById(menuId)?.querySelector<HTMLButtonElement>('[aria-checked="true"]')?.focus();
+            });
+          }) : (
+          <div role={optionContent ? "menu" : undefined} aria-label={optionContent ? menuLabel : undefined}>
           {menuHeader ? (
             <p className="px-2 py-1 text-[11px] tracking-wide text-ink-3">
               {menuHeader}
@@ -230,6 +266,8 @@ export default function FilterBaseButton({
               </div>
             );
           })}
+          </div>
+          )}
         </div>
       ) : null}
     </div>

@@ -22,7 +22,7 @@ type Props = {
 export default async function ChartWrapper(props: Props) {
   const searchParams = parseDashboardSearchParams(await props.searchParams);
   const wikiOrgId = await getWikiOrgId();
-  const timeWindow = getTimeWindow(searchParams.range);
+  const timeWindow = getTimeWindow(searchParams);
 
   const series = await getEventsSeries(
     wikiOrgId.toString(),
