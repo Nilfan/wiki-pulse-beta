@@ -1,5 +1,9 @@
 /// <reference lib="deno.ns" />
-import { MAX_BATCH_CAPACITY, BATCH_ADD_THROTTLE_MS, FLUSH_TIMEOUT_MS } from "../lib/collector-config.ts";
+import {
+  MAX_BATCH_CAPACITY,
+  BATCH_ADD_THROTTLE_MS,
+  FLUSH_TIMEOUT_MS,
+} from "../lib/collector-config.ts";
 
 import { EventSource } from "eventsource";
 import { WIKI_ORG } from "../prisma/constants.ts";
@@ -126,14 +130,19 @@ export class WikiSourceService {
 
   private startFlushTimer() {
     this.flushTimer ??= setInterval(() => {
-      void this.flushBatch().catch((err) => error("Error on flush events", err));
+      void this.flushBatch().catch((err) =>
+        error("Error on flush events", err),
+      );
     }, FLUSH_TIMEOUT_MS);
   }
 
   flushBatch(): Promise<void> {
     if (this.pendingFlush) return this.pendingFlush;
     const orgId = this.wikiOrg?.id;
-    if (!orgId) return Promise.reject(new Error(getErrorText("Wiki org must be defined on flush")));
+    if (!orgId)
+      return Promise.reject(
+        new Error(getErrorText("Wiki org must be defined on flush")),
+      );
 
     // Keep a failed write separate so collection can continue at its normal cadence.
     const events = [...this.retryBatch, ...this.eventBatch];
@@ -146,13 +155,19 @@ export class WikiSourceService {
         this.retryBatch = events;
         throw err;
       })
-      .finally(() => { this.pendingFlush = undefined; });
+      .finally(() => {
+        this.pendingFlush = undefined;
+      });
     return this.pendingFlush;
   }
 
   private addEventToBatchOnMessage(rawEvent: MessageEvent) {
     const sampleSlot = Math.floor(Date.now() / BATCH_ADD_THROTTLE_MS);
-    if (sampleSlot === this.lastSampleSlot || this.eventBatch.length >= MAX_BATCH_CAPACITY) return;
+    if (
+      sampleSlot === this.lastSampleSlot ||
+      this.eventBatch.length >= MAX_BATCH_CAPACITY
+    )
+      return;
 
     const {
       type,
@@ -165,7 +180,8 @@ export class WikiSourceService {
     } = JSON.parse(rawEvent.data);
 
     const timestamp = new Date(meta?.dt ?? dt ?? unixTimestamp * 1000);
-    if (!Number.isFinite(timestamp.getTime())) throw new Error("Missing or invalid event timestamp");
+    if (!Number.isFinite(timestamp.getTime()))
+      throw new Error("Missing or invalid event timestamp");
     const path = title_url.replace(server_url, "");
     const country = getLanguageFromServerUrl(server_url);
 
@@ -181,7 +197,7 @@ export class WikiSourceService {
 
     this.eventBatch.push(event);
     this.lastSampleSlot = sampleSlot;
-    log(`Add to batch: ${this.eventBatch.length}/${MAX_BATCH_CAPACITY}`);
+    // log(`Add to batch: ${this.eventBatch.length}/${MAX_BATCH_CAPACITY}`);
   }
 
   private async flushEvents(orgId: number | bigint, events: WikiEvent[]) {
