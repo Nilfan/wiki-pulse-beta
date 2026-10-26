@@ -5,8 +5,13 @@ import { log } from "./wiki-source-service-helpers.ts";
 
 const LOCAL_PG_URL = "postgresql://postgres:postgres@localhost:5432/nextjs_dev";
 
-export function getPrismaClient() {
-  const pgUrl = process.env.DATABASE_URL || LOCAL_PG_URL;
+type PrismaClientGetterInput = { forceDevDB?: boolean };
+
+export function getPrismaClient(config: PrismaClientGetterInput = {}) {
+  const pgUrl =
+    config.forceDevDB || !process.env.DATABASE_URL
+      ? LOCAL_PG_URL
+      : process.env.DATABASE_URL;
 
   const isLocal = pgUrl === LOCAL_PG_URL;
   const isLocalLabel = isLocal ? "local" : "env/prod";

@@ -3,6 +3,7 @@ import {
   MAX_BATCH_CAPACITY,
   BATCH_ADD_THROTTLE_MS,
   FLUSH_TIMEOUT_MS,
+  FORCE_DEV_DB,
 } from "../lib/collector-config.ts";
 
 import { EventSource } from "eventsource";
@@ -42,7 +43,11 @@ export class WikiSourceService {
   private healthCheckTimer?: ReturnType<typeof setInterval>;
   private lastEventReceivedAt?: number;
 
-  constructor(prismaClient = getPrismaClient()) {
+  constructor(
+    prismaClient = getPrismaClient({
+      forceDevDB: FORCE_DEV_DB,
+    }),
+  ) {
     this.prismaClient = prismaClient;
   }
 
@@ -197,7 +202,7 @@ export class WikiSourceService {
 
     this.eventBatch.push(event);
     this.lastSampleSlot = sampleSlot;
-    // log(`Add to batch: ${this.eventBatch.length}/${MAX_BATCH_CAPACITY}`);
+    log(`Add to batch: ${this.eventBatch.length}/${MAX_BATCH_CAPACITY}`);
   }
 
   private async flushEvents(orgId: number | bigint, events: WikiEvent[]) {
