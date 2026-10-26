@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EventsSeriesWire } from "@/lib/queries/events";
 import { revalidateDashboardData } from "../../actions";
+import { DEBOUNCE_MS, REFRESH_CHECK_INTERVAL_MS } from "./constants";
+import { getPreviousEventsRefreshTime } from "./helpers";
 
 export type EventsSeriesState = EventsSeriesWire & {
   /**
@@ -13,19 +15,6 @@ export type EventsSeriesState = EventsSeriesWire & {
   queryString: string;
   isLoading: boolean;
 };
-
-/**
- * How long the filters have to hold still before a request goes out. Long
- * enough to swallow a burst of clicks through a filter menu, short enough
- * that a single deliberate change still feels immediate.
- */
-const DEBOUNCE_MS = 350;
-
-/**
- * How often the series on screen is refetched in the background so the chart
- * keeps up with newly collected events without a page reload.
- */
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 /**
  * Keeps the chart's series in step with the filter query string.
@@ -45,7 +34,7 @@ const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
  * dims rather than collapsing to an empty frame.
  *
  * On top of that the current series is refetched every
- * {@link REFRESH_INTERVAL_MS}. That refresh is silent — the chart does not dim
+ * {@link REFRESH_CHECK_INTERVAL_MS}. That refresh is silent — the chart does not dim
  * — it skips ticks while the tab is hidden, and a filter change restarts the
  * interval and aborts a refresh that is still in flight.
  *
@@ -119,6 +108,7 @@ export default function useEventsSeries(
 
   useEffect(() => {
     queryStringRef.current = queryString;
+    let prevRefreshTime = getPreviousEventsRefreshTime();
 
     // Background refresh of whatever the filters currently are. Skipped while
     // the tab is hidden so an idle tab does not keep hitting the API.
@@ -126,8 +116,13 @@ export default function useEventsSeries(
       if (document.visibilityState === "hidden") {
         return;
       }
-      load(queryString);
-    }, REFRESH_INTERVAL_MS);
+
+      const currentUpdateTime = getPreviousEventsRefreshTime();
+      if (prevRefreshTime < currentUpdateTime) {
+        prevRefreshTime = currentUpdateTime;
+        load(queryString);
+      }
+    }, REFRESH_CHECK_INTERVAL_MS);
 
     if (queryString === loadedQueryStringRef.current) {
       // Already showing exactly this series. Reached either on first mount or

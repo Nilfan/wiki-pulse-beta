@@ -64,7 +64,8 @@ const SERIES_ANIMATION = {
 } as const;
 
 export default function Chart({ initialSeries }: Props) {
-  const [rangeOverlayContainer, setRangeOverlayContainer] = useState<HTMLDivElement | null>(null);
+  const [rangeOverlayContainer, setRangeOverlayContainer] =
+    useState<HTMLDivElement | null>(null);
   const [isRangeSelecting, setIsRangeSelecting] = useState(false);
   const [chartType, setChartType] = useState<ChartType>("line");
   // Series switched off from the legend, by key. Cleared on a filter change.
@@ -189,11 +190,16 @@ export default function Chart({ initialSeries }: Props) {
             {formatTotal(total)}
           </p>
           <p className="mt-2.5 font-data text-[12.5px] text-ink-3">
-            Drag to select a period, then Apply range to confirm. Escape cancels.
+            Drag to select a period, then Apply range to confirm. Escape
+            cancels.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <CacheBadge untilMs={untilMs} isLoading={isLoading} fixedPeriod={range === "custom"} />
+          <CacheBadge
+            untilMs={untilMs}
+            isLoading={isLoading}
+            fixedPeriod={range === "custom"}
+          />
           <ChartTypeTabs value={chartType} onChange={setChartType} />
           <RefreshButton onClick={refresh} isLoading={isLoading} />
         </div>
@@ -306,7 +312,13 @@ export default function Chart({ initialSeries }: Props) {
                 sinceMs={loadedWindow.since.getTime()}
                 untilMs={untilMs}
                 disabled={isLoading || loadedQueryString !== queryString}
-                onSelect={(start, end) => setDashboardSearchParams(pathname, { range: "custom", start, end })}
+                onSelect={(start, end) =>
+                  setDashboardSearchParams(pathname, {
+                    range: "custom",
+                    start,
+                    end,
+                  })
+                }
               />
             </ComposedChart>
           </div>
