@@ -6,7 +6,7 @@ import {
 } from "./FeedBlockSkeletons";
 import { FeedFooter, FeedLive } from "./FeedLive";
 import { PulseIcon } from "@/lib/components";
-import { getFeedSnapshot } from "@/lib/queries/feed";
+import { getFeedSnapshot } from "@/lib/api/data";
 
 async function FeedEvents() {
   await connection();

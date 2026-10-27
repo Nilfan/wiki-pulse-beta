@@ -1,14 +1,6 @@
-import { NextResponse } from "next/server";
-import { connection } from "next/server";
-import { getFeedSnapshot, type FeedSnapshot } from "@/lib/queries/feed";
+import { dispatchApi } from "@/lib/api/dispatch";
+import type { NextRequest } from "next/server";
 
-export type FeedResponse = FeedSnapshot;
-
-/** Fresh snapshot for the landing feed, polled once per refresh interval. */
-export async function GET() {
-  await connection();
-
-  const body: FeedResponse = await getFeedSnapshot();
-
-  return NextResponse.json(body);
+export async function GET(request: NextRequest) {
+  return dispatchApi("feed", request);
 }

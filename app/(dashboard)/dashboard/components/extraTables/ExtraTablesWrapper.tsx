@@ -1,13 +1,8 @@
-import { getEventsSeries, getTimeWindow, toEventsSeriesWire } from "@/lib/queries/events";
-import { getRecentEvents } from "@/lib/queries/recentEvents";
-import { getBreakdownPage } from "@/lib/queries/breakdown";
-import { BREAKDOWN_PAGE_SIZE } from "@/lib/queries/constants";
-import { getInsights } from "@/lib/queries/insights";
+import { getEventsSeries, getRecentEvents, getBreakdownPage, getInsights } from "@/lib/api/data";
 import {
   parseDashboardSearchParams,
   type DashboardSearchParamsInput,
 } from "@/lib/queries/dashboardSearchParams";
-import { getWikiOrgId } from "@/lib/queries/organizations";
 import ExtraTablesView from "./ExtraTablesView";
 
 type Props = {
@@ -19,31 +14,18 @@ type Props = {
  */
 export default async function ExtraTablesWrapper(props: Props) {
   const searchParams = parseDashboardSearchParams(await props.searchParams);
-  const wikiOrgId = await getWikiOrgId();
-  const timeWindow = getTimeWindow(searchParams);
-
-  const orgId = wikiOrgId.toString();
-
   const [insights, pages, countries, series, recent] = await Promise.all([
-    getInsights(orgId, searchParams, timeWindow),
-    getBreakdownPage(orgId, "page", searchParams, timeWindow, {
-      offset: 0,
-      limit: BREAKDOWN_PAGE_SIZE,
-      facet: true,
-    }),
-    getBreakdownPage(orgId, "country", searchParams, timeWindow, {
-      offset: 0,
-      limit: BREAKDOWN_PAGE_SIZE,
-      facet: true,
-    }),
-    getEventsSeries(orgId, searchParams, timeWindow),
-    getRecentEvents(orgId, searchParams, timeWindow),
+    getInsights(searchParams),
+    getBreakdownPage("page", searchParams),
+    getBreakdownPage("country", searchParams),
+    getEventsSeries(searchParams),
+    getRecentEvents(searchParams),
   ]);
 
   return (
     <ExtraTablesView
       initialInsights={insights}
-      initialSeries={toEventsSeriesWire(series, timeWindow)}
+      initialSeries={series}
       initialRecent={recent}
       initialPages={pages}
       initialCountries={countries}

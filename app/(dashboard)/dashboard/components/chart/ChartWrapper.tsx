@@ -1,13 +1,8 @@
-import {
-  getEventsSeries,
-  getTimeWindow,
-  toEventsSeriesWire,
-} from "@/lib/queries/events";
+import { getEventsSeries } from "@/lib/api/data";
 import {
   parseDashboardSearchParams,
   type DashboardSearchParamsInput,
 } from "@/lib/queries/dashboardSearchParams";
-import { getWikiOrgId } from "@/lib/queries/organizations";
 import Chart from "./Chart";
 
 type Props = {
@@ -21,14 +16,7 @@ type Props = {
  */
 export default async function ChartWrapper(props: Props) {
   const searchParams = parseDashboardSearchParams(await props.searchParams);
-  const wikiOrgId = await getWikiOrgId();
-  const timeWindow = getTimeWindow(searchParams);
+  const series = await getEventsSeries(searchParams);
 
-  const series = await getEventsSeries(
-    wikiOrgId.toString(),
-    searchParams,
-    timeWindow,
-  );
-
-  return <Chart initialSeries={toEventsSeriesWire(series, timeWindow)} />;
+  return <Chart initialSeries={series} />;
 }
