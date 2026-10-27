@@ -1,6 +1,8 @@
 "use client";
 
 import clsx from "clsx";
+import { IconChevronDown, IconSearch, IconX } from "@tabler/icons-react";
+import FilterPopover from "./FilterPopover";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -28,7 +30,7 @@ type Props = {
 
 /** Typing has to pause this long before the options are searched again. */
 const SEARCH_DEBOUNCE_MS = 300;
-const ROW_HEIGHT = 30;
+const ROW_HEIGHT = 40;
 const VISIBLE_ROWS = 8;
 
 /**
@@ -116,7 +118,7 @@ export default function SearchableFilter({
 
   const optionId = (index: number) => `${listId}-option-${index}`;
 
-  let summary = "any";
+  let summary = dimension === "event" ? "All types" : "All";
   if (selected.length) {
     summary = formatLabel(selected[0]);
     if (selected.length > 1) summary += ` +${selected.length - 1}`;
@@ -166,18 +168,16 @@ export default function SearchableFilter({
             setIsOpen(true);
           }
         }}
-        className="flex items-center gap-2 border border-ink bg-white px-2.75 py-1.25 text-[13px] whitespace-nowrap outline-none transition-colors hover:bg-paper-deep focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
+        className={clsx("flex min-h-11 items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-sm whitespace-nowrap outline-none transition-[background-color,border-color,box-shadow] hover:border-[#b9c9ec] hover:bg-[#eef3fd] aria-expanded:border-signal/40 aria-expanded:bg-[#eef3fd] aria-expanded:shadow-[0_0_0_3px_#2b59e80d] focus-visible:ring-2 focus-visible:ring-signal/30 focus-visible:ring-offset-2", selected.length ? "rounded-r-none border-signal/25 bg-[#eef3fd]" : "border-[#dce4f0] bg-[#f8fafd]")}
       >
-        <span className="text-ink-3">{name}</span>
+        <span className="text-[13px] text-ink-3">{name}</span>
         <span
-          className="max-w-44 truncate"
+          className="max-w-[min(11rem,30vw)] truncate font-medium"
           title={selected.map(formatLabel).join(", ")}
         >
           {summary}
         </span>
-        <span aria-hidden="true" className="text-ink-3">
-          ▾
-        </span>
+        <IconChevronDown size={15} aria-hidden className={clsx("ml-0.5 shrink-0 text-ink-3 transition-transform motion-reduce:transition-none", isOpen && "rotate-180")} />
       </button>
       {selected.length ? (
         <button
@@ -185,15 +185,16 @@ export default function SearchableFilter({
           aria-label={`Reset ${name} filter`}
           title="Reset"
           onClick={() => writeSelection([])}
-          className="-ml-px border border-ink bg-white px-2 text-[13px] text-ink-3 outline-none transition-colors hover:bg-paper-deep hover:text-ink focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
+          className="-ml-px rounded-r-xl border border-signal/25 bg-[#eef3fd] px-2.5 text-signal outline-none transition-colors hover:bg-[#e0e9ff] focus-visible:ring-2 focus-visible:ring-signal/30 focus-visible:ring-offset-2"
         >
-          ×
+          <IconX size={14} aria-hidden />
         </button>
       ) : null}
 
       {isOpen ? (
-        <div className="absolute left-0 top-[calc(100%+4px)] z-50 w-[min(26rem,calc(100vw-2rem))] border border-ink bg-white p-1 shadow-[3px_3px_0_var(--color-ink)]">
-          <div className="flex items-center gap-1 px-1 pt-1 pb-1.5">
+        <FilterPopover width={384}>
+          <div className="mb-2 flex items-center gap-2 rounded-xl border border-hair bg-[#f8fafd] px-3 py-2.5 focus-within:border-signal/40 focus-within:ring-2 focus-within:ring-signal/10">
+            <IconSearch size={16} className="shrink-0 text-ink-3" aria-hidden />
             <input
               type="text"
               role="combobox"
@@ -226,14 +227,14 @@ export default function SearchableFilter({
                   else close(true);
                 }
               }}
-              className="min-w-0 flex-1 border border-ink px-2 py-1 text-[13px] outline-none placeholder:text-ink-3 focus-visible:ring-2 focus-visible:ring-signal"
+              className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-ink-3/70"
             />
             {searchInput ? (
               <button
                 type="button"
                 aria-label="Clear search"
                 onClick={() => setSearchInput("")}
-                className="border border-transparent px-1.5 py-1 text-[13px] text-ink-3 hover:border-ink hover:text-ink"
+                className="rounded-md px-1 py-0.5 text-sm text-ink-3 hover:bg-paper-deep hover:text-ink"
               >
                 ×
               </button>
@@ -241,7 +242,7 @@ export default function SearchableFilter({
           </div>
 
           {selected.length ? (
-            <div className="mx-1 mb-1.5 border-y border-hair py-1.5">
+            <div className="mx-1 mb-2 border-b border-hair pb-3 pt-1">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-[11.5px] text-ink-3">
                   {selected.length} selected
@@ -250,7 +251,7 @@ export default function SearchableFilter({
                 <button
                   type="button"
                   onClick={() => writeSelection([])}
-                  className="border border-ink px-2 py-0.5 text-[12px] hover:bg-paper-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+                  className="rounded-lg px-2 py-1 text-xs font-medium text-signal hover:bg-[#eef3fd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/30"
                 >
                   Reset
                 </button>
@@ -265,7 +266,7 @@ export default function SearchableFilter({
                       type="button"
                       aria-label={`Remove ${formatLabel(value)}`}
                       onClick={() => toggleValue(value)}
-                      className="flex max-w-56 items-center gap-1 bg-ink px-1.5 py-0.5 text-[12px] text-white hover:bg-ink-soft"
+                      className="flex max-w-56 items-center gap-1.5 rounded-lg bg-[#eaf0ff] px-2 py-1 text-xs font-medium text-signal hover:bg-[#dce6ff]"
                     >
                       <span className="truncate">{formatLabel(value)}</span>
                       <span aria-hidden="true">×</span>
@@ -330,18 +331,18 @@ export default function SearchableFilter({
                       onMouseMove={() => setActiveIndex(index)}
                       onClick={() => !isDisabled && toggleValue(value)}
                       className={clsx(
-                        "flex h-full cursor-pointer items-center gap-2 border px-2 text-[13px]",
+                        "flex h-full cursor-pointer items-center gap-2.5 rounded-xl border border-transparent px-3 text-sm transition-colors hover:bg-paper",
                         index === activeIndex
-                          ? "border-ink"
-                          : "border-transparent",
+                          ? "bg-[#eef3fd]"
+                          : isSelected ? "bg-[#f4f7ff]" : "bg-white",
                         isDisabled && "cursor-not-allowed opacity-45",
                       )}
                     >
                       <span
                         aria-hidden="true"
                         className={clsx(
-                          "flex size-3 shrink-0 items-center justify-center border border-ink text-[9px] leading-none",
-                          isSelected && "bg-ink text-white",
+                          "flex size-4 shrink-0 items-center justify-center rounded-[5px] border border-rule text-[10px] leading-none",
+                          isSelected && "border-signal bg-signal text-white",
                         )}
                       >
                         {isSelected ? "✓" : ""}
@@ -356,7 +357,7 @@ export default function SearchableFilter({
               />
             </div>
           )}
-        </div>
+        </FilterPopover>
       ) : null}
     </div>
   );

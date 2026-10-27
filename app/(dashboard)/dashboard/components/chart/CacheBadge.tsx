@@ -39,14 +39,14 @@ export default function CacheBadge({ untilMs, isLoading = false, fixedPeriod = f
 
   if (isLoading) {
     return (
-      <span className="border border-hair px-2 py-1.5 font-data text-[11.5px] text-ink-3">
+      <span className="rounded-lg border border-hair px-2 py-1.5 font-data text-[11.5px] text-ink-3">
         updating…
       </span>
     );
   }
 
   return (
-    <span className="border border-brand/45 px-2 py-1.5 font-data text-[11.5px] text-brand tabular-nums">
+    <span className="rounded-lg border border-hair bg-paper px-2 py-1.5 font-data text-[11.5px] text-ink-3 tabular-nums">
       {fixedPeriod ? "fixed period" : `cached${age ? ` · ${age}` : ""}`}
     </span>
   );

@@ -2,6 +2,12 @@
 
 import { useMemo } from "react";
 import { useSearchParams } from "next/navigation";
+import type { EventsSeriesWire } from "@/lib/queries/events";
+import type { RecentEvent } from "@/lib/queries/recentEvents";
+import Chart from "../chart/Chart";
+import DashboardFilters from "../filters/DashboardFilters";
+import OverviewHeading from "../OverviewHeading";
+import RecentEvents from "../RecentEvents";
 import type { BreakdownPage } from "@/lib/queries/breakdown";
 import type { Insights as InsightsData } from "@/lib/queries/insights";
 import {
@@ -19,12 +25,14 @@ import useInsights from "./useInsights";
 
 type Props = {
   initialInsights: InsightsData;
+  initialSeries: EventsSeriesWire;
+  initialRecent: RecentEvent[];
   initialPages: BreakdownPage;
   initialCountries: BreakdownPage;
 };
 
 const formatPath = (value: string) => formatGroupValue("page", value);
-const formatCountry = (value: string) => formatGroupValue("country", value);
+const formatCountry = (value: string) => value === "unknown" ? "Unspecified language" : formatGroupValue("country", value);
 
 /** The by-type counts ignore the event type filter, so its key does too. */
 function withoutEventType(queryString: string) {
@@ -34,12 +42,14 @@ function withoutEventType(queryString: string) {
 }
 
 /**
- * Owns the requests behind every section below the chart. The strip and the
+ * Owns the overview and requests behind its summary and breakdown cards. The strip and the
  * by-type list share one fetch; each breakdown list pages on its own, but all
  * of them key on the same filters and dim and settle together.
  */
 export default function ExtraTablesView({
   initialInsights,
+  initialSeries,
+  initialRecent,
   initialPages,
   initialCountries,
 }: Props) {
@@ -87,21 +97,26 @@ export default function ExtraTablesView({
   );
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-w-0 flex-col gap-5">
+      <OverviewHeading untilMs={insights.untilMs} />
+      <DashboardFilters />
       <Insights
         insights={insights}
         range={params.range}
         isLoading={isLoading}
       />
-      <ByTypeTable
+      <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
+        <Chart initialSeries={initialSeries} />
+        <ByTypeTable
         types={insights.types}
         isGroupedByType={params.groupBy.includes("event")}
         isGroupByDisabled={params.eventType.length > 0}
         isLoading={isTypesLoading}
       />
-      <div className="grid md:grid-cols-2 *:border-t-0 md:*:not-first:border-l-0">
+      </div>
+      <div className="grid min-w-0 gap-4 lg:grid-cols-2">
         <BreakdownTable
-          title="top paths"
+          title="Top pages"
           dimension="page"
           breakdown={pages}
           formatLabel={formatPath}
@@ -109,7 +124,7 @@ export default function ExtraTablesView({
           isGroupByDisabled={params.page.length > 0}
         />
         <BreakdownTable
-          title="by language"
+          title="Language distribution"
           dimension="country"
           breakdown={countries}
           formatLabel={formatCountry}
@@ -118,6 +133,7 @@ export default function ExtraTablesView({
           withPie
         />
       </div>
+      <RecentEvents initialEvents={initialRecent} queryString={serializeDashboardSearchParams(params)} />
     </div>
   );
 }

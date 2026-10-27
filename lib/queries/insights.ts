@@ -9,7 +9,7 @@ export type InsightsBucket = {
   /** Bucket start, epoch milliseconds. */
   timestamp: number;
   events: number;
-  /** Distinct wiki languages (stored in the `country` column). */
+  /** Distinct wiki hosts. */
   wikis: number;
   paths: number;
 };
@@ -28,7 +28,7 @@ export type InsightsType = {
  */
 export type Insights = {
   events: number;
-  /** Distinct wiki languages (stored in the `country` column). */
+  /** Distinct wiki hosts. */
   wikis: number;
   paths: number;
   /** Newest event in the window, epoch milliseconds; null for an empty one. */
@@ -46,7 +46,7 @@ export type Insights = {
 
 type InsightsRow = {
   events: number;
-  /** Distinct wiki languages (stored in the `country` column). */
+  /** Distinct wiki hosts. */
   wikis: number;
   paths: number;
   last_event_ms: number | null;
@@ -91,6 +91,7 @@ async function getInsightsRow(
         e."timestamp",
         e."type",
         e."country",
+        e."host",
         e."path",
         ${until}::bigint - ceil(
           (${until}::bigint - (extract(epoch FROM e."timestamp") * 1000)::bigint)::numeric
@@ -106,15 +107,15 @@ async function getInsightsRow(
       SELECT
         bucket_ms,
         count(*)::int AS events,
-        count(DISTINCT country)::int AS wikis,
-        count(DISTINCT path)::int AS paths
+        count(DISTINCT host)::int AS wikis,
+        count(DISTINCT (host, path))::int AS paths
       FROM filtered
       GROUP BY bucket_ms
     )
     SELECT
       (SELECT count(*)::int FROM filtered) AS events,
-      (SELECT count(DISTINCT country)::int FROM filtered) AS wikis,
-      (SELECT count(DISTINCT path)::int FROM filtered) AS paths,
+      (SELECT count(DISTINCT host)::int FROM filtered) AS wikis,
+      (SELECT count(DISTINCT (host, path))::int FROM filtered) AS paths,
       (SELECT (extract(epoch FROM max("timestamp")) * 1000)::float8 FROM filtered) AS last_event_ms,
       COALESCE(
         (SELECT json_agg(json_build_array(bucket_ms, events, wikis, paths)) FROM buckets),

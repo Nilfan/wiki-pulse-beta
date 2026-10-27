@@ -26,8 +26,8 @@ const VIEWS = ["list", "pie"] as const;
 type View = (typeof VIEWS)[number];
 
 /** Matches the row rhythm of the by-type list. */
-export const BREAKDOWN_ROW_HEIGHT = 33;
-export const BREAKDOWN_VISIBLE_ROWS = 10;
+export const BREAKDOWN_ROW_HEIGHT = 44;
+export const BREAKDOWN_VISIBLE_ROWS = 6;
 const BODY_HEIGHT = BREAKDOWN_ROW_HEIGHT * BREAKDOWN_VISIBLE_ROWS;
 
 export default function BreakdownTable({
@@ -67,10 +67,10 @@ export default function BreakdownTable({
   }
 
   return (
-    <div className="flex min-w-0 flex-col border border-hair bg-card">
-      <header className="flex items-center justify-between gap-4 border-b border-hair px-6 py-3">
-        <h2 className="font-data text-[13px] font-medium text-ink">{title}</h2>
-        <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-col rounded-[14px] border border-hair bg-white pb-3">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-5.5 py-5">
+        <h2 className="text-lg font-semibold text-ink">{title}</h2>
+        <div className="flex flex-wrap items-center gap-2">
           {withPie && (
             <ViewTabs value={view} onChange={setView} label={title} />
           )}
@@ -84,6 +84,7 @@ export default function BreakdownTable({
         </div>
       </header>
 
+      <p className="px-5.5 pb-3 text-xs text-ink-3">{dimension === "page" ? "Pages ranked by sampled events. Select a page to filter." : "Share by recorded language. Unspecified includes multilingual wikis such as Commons and Wikidata."}</p>
       {total === 0 ? (
         <p
           className="flex items-center justify-center font-data text-[12.5px] text-ink-3"
@@ -129,15 +130,15 @@ export default function BreakdownTable({
                     }
                     onClick={() => toggle(value)}
                     className={clsx(
-                      "block h-full w-full px-6 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-inset",
+                      "block h-full w-full px-5.5 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-inset",
                       isSelected
                         ? "bg-paper-deep shadow-[inset_2px_0_0_var(--color-ink)]"
                         : "hover:bg-paper-deep/60",
                       isDisabled && "cursor-not-allowed opacity-45",
                     )}
                   >
-                    <span className="flex h-full items-center gap-3 border-b border-hair font-data text-[13px] text-ink">
-                      <span className="w-8 shrink-0 text-ink-3 tabular-nums">
+                    <span className="flex h-full items-center gap-3 border-b border-[#eef1f6] text-sm text-ink">
+                      <span className="w-5 shrink-0 text-ink-3 tabular-nums">
                         {index + 1}
                       </span>
                       <span
@@ -151,18 +152,18 @@ export default function BreakdownTable({
                       </span>
                       <span
                         aria-hidden="true"
-                        className="h-2 w-18 shrink-0 bg-hair sm:w-28"
+                        className="h-2 w-12 shrink-0 overflow-hidden rounded-full bg-[#eef1f6] min-[1200px]:w-20"
                       >
                         <span
-                          className="block h-full bg-dash-event-1"
+                          className="block h-full rounded-full bg-signal"
                           style={{ width: `${share * 100}%` }}
                         />
                       </span>
                       <span
-                        className="w-14 shrink-0 text-right tabular-nums"
+                        className="w-14 shrink-0 text-right font-semibold tabular-nums"
                         title={formatTotal(count)}
                       >
-                        {formatShare(share)}
+                        {dimension === "page" ? formatTotal(count) : formatShare(share)}
                       </span>
                     </span>
                   </button>
@@ -187,7 +188,7 @@ function ViewTabs({ value, onChange, label }: ViewTabsProps) {
     <div
       role="tablist"
       aria-label={`${label} view`}
-      className="flex divide-x divide-hair border border-hair"
+      className="inline-flex shrink-0 gap-1 rounded-2xl border border-hair bg-[#f3f6fb] p-1"
     >
       {VIEWS.map((view) => (
         <button
@@ -197,10 +198,10 @@ function ViewTabs({ value, onChange, label }: ViewTabsProps) {
           aria-selected={value === view}
           onClick={() => onChange(view)}
           className={clsx(
-            "px-2 py-1 font-data text-[11.5px]",
+            "min-h-9 rounded-xl px-3.5 py-2 text-sm capitalize outline-none transition-colors focus-visible:ring-2 focus-visible:ring-signal/30 focus-visible:ring-offset-1",
             value === view
-              ? "bg-ink text-shell"
-              : "bg-card text-ink-soft hover:text-ink",
+              ? "bg-white font-semibold text-signal shadow-sm"
+              : "text-ink-soft hover:bg-white/70 hover:text-ink",
           )}
         >
           {view}

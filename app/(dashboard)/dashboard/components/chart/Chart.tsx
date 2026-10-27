@@ -180,21 +180,14 @@ export default function Chart({ initialSeries }: Props) {
     ) : null;
 
   return (
-    <div className="border border-hair bg-card px-6 py-5">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
-        <div>
-          <p className="font-data text-[11px] tracking-[0.14em] text-ink-3 uppercase">
-            events · {getRangeLabel(params)}
-          </p>
-          <p className="mt-1.5 font-display text-[44px] leading-none font-bold tracking-[-0.02em] text-ink tabular-nums">
-            {formatTotal(total)}
-          </p>
-          <p className="mt-2.5 font-data text-[12.5px] text-ink-3">
-            Drag to select a period, then Apply range to confirm. Escape
-            cancels.
-          </p>
+    <section aria-label="Activity chart" className="min-w-0 rounded-[14px] border border-hair bg-white px-4 py-5 sm:px-5.5">
+      <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+        <div className="min-w-0 flex-1 basis-60">
+          <h2 className="text-lg font-semibold">Activity</h2>
+          <p className="mt-1 text-sm text-ink-3">Sampled events per {params.interval} bucket · {getRangeLabel(params)} · UTC</p>
+          <p className="mt-1 text-xs text-ink-3">{formatTotal(total)} events · Drag a period, then Apply range to confirm.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <CacheBadge
             untilMs={untilMs}
             isLoading={isLoading}
@@ -205,7 +198,7 @@ export default function Chart({ initialSeries }: Props) {
         </div>
       </header>
 
-      {rows.length === 0 ? (
+      {total === 0 || rows.length === 0 ? (
         <p className="py-16 text-center font-data text-[12.5px] text-ink-3">
           No events in this window.
         </p>
@@ -218,6 +211,7 @@ export default function Chart({ initialSeries }: Props) {
             )}
           >
             <ComposedChart
+              key={chartType}
               responsive
               style={{ width: "100%", height: "100%" }}
               data={rows}
@@ -225,8 +219,7 @@ export default function Chart({ initialSeries }: Props) {
             >
               <CartesianGrid
                 vertical={false}
-                stroke="var(--color-ink-faint)"
-                strokeDasharray="1 4"
+                stroke="var(--color-hair)"
               />
               <XAxis
                 dataKey="timestamp"
@@ -237,7 +230,7 @@ export default function Chart({ initialSeries }: Props) {
                 tickLine={false}
                 tickMargin={10}
                 tick={AXIS_TICK}
-                axisLine={{ stroke: "var(--color-ink)", strokeWidth: 1 }}
+                axisLine={{ stroke: "var(--color-hair)", strokeWidth: 1 }}
               />
               <YAxis
                 width={40}
@@ -330,6 +323,6 @@ export default function Chart({ initialSeries }: Props) {
           />
         </div>
       )}
-    </div>
+    </section>
   );
 }

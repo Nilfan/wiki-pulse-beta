@@ -26,7 +26,7 @@ export default function DateTimePicker({ id, label, value, onChange, invalid, de
 
   return (
     <div className="min-w-0">
-      <label htmlFor={id} className="mb-1 block text-xs">{label}</label>
+      <label htmlFor={id} className="mb-1.5 block text-xs font-medium text-ink-soft">{label}</label>
       <button
         ref={trigger}
         id={id}
@@ -35,7 +35,7 @@ export default function DateTimePicker({ id, label, value, onChange, invalid, de
         aria-controls={`${id}-calendar`}
         aria-describedby={describedBy}
         onClick={() => setOpen((previous) => !previous)}
-        className={`w-full border ${invalid ? "border-brand" : "border-ink"} bg-white px-2.5 py-2 text-left text-[13px] focus-visible:outline-2 focus-visible:outline-signal`}
+        className={`w-full rounded-xl border ${invalid ? "border-brand" : "border-hair"} bg-[#f8fafd] px-3 py-2.5 text-left text-sm hover:border-[#b9c9ec] focus-visible:outline-2 focus-visible:outline-signal/40`}
       >
         {value.replace("T", " · ")} <span aria-hidden="true" className="float-right">▾</span>
       </button>
@@ -70,13 +70,13 @@ function CalendarEditor({ label, value, onCancel, onApply }: {
   const days = Array.from({ length: 42 }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index - offset + 1));
 
   return (
-    <section aria-label={`${label} date picker`} className="mt-1 border border-rule bg-paper p-2">
+    <section aria-label={`${label} date picker`} className="mt-2 rounded-2xl border border-hair bg-[#f8fafd] p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <button type="button" aria-label="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="px-2 py-1 hover:bg-paper-deep">‹</button>
+        <button type="button" aria-label="Previous month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} className="rounded-lg px-2.5 py-1.5 hover:bg-paper-deep focus-visible:outline-2 focus-visible:outline-signal/30">‹</button>
         <p aria-live="polite" className="text-xs font-medium">{monthLabel}</p>
-        <button type="button" aria-label="Next month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="px-2 py-1 hover:bg-paper-deep">›</button>
+        <button type="button" aria-label="Next month" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} className="rounded-lg px-2.5 py-1.5 hover:bg-paper-deep focus-visible:outline-2 focus-visible:outline-signal/30">›</button>
       </div>
-      <div className="grid grid-cols-7 text-center text-xs">
+      <div className="grid grid-cols-7 gap-0.5 text-center text-xs">
         {weekdays.map((day) => <span key={day} className="py-1 text-ink-soft">{day}</span>)}
         {days.map((day) => {
           const date = datePart(day);
@@ -88,16 +88,16 @@ function CalendarEditor({ label, value, onCancel, onApply }: {
               aria-label={day.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
               aria-pressed={selected}
               onClick={() => setSelectedDate(date)}
-              className={`py-1.5 focus-visible:outline-2 focus-visible:outline-signal ${selected ? "bg-signal text-white" : day.getMonth() === month.getMonth() ? "hover:bg-paper-deep" : "text-ink-soft hover:bg-paper-deep"}`}
+              className={`rounded-lg py-2 focus-visible:outline-2 focus-visible:outline-signal/30 ${selected ? "bg-signal text-white" : day.getMonth() === month.getMonth() ? "hover:bg-paper-deep" : "text-ink-soft hover:bg-paper-deep"}`}
             >{day.getDate()}</button>
           );
         })}
       </div>
       <label htmlFor={timeId} className="mt-3 block text-xs">Time</label>
-      <input id={timeId} type="time" step="1" value={time} onChange={(event) => setTime(event.target.value)} className="mt-1 w-full border border-rule bg-white px-2 py-1.5 text-sm" />
-      <div className="mt-3 flex justify-end gap-2 border-t border-rule pt-2">
-        <button type="button" aria-label={`Cancel ${label.toLowerCase()} date selection`} onClick={onCancel} className="border border-ink px-3 py-1.5 text-xs hover:bg-paper-deep">Cancel</button>
-        <button type="button" aria-label={`Apply ${label.toLowerCase()} date selection`} disabled={!selectedDate || !time} onClick={() => onApply(`${selectedDate}T${time.length === 5 ? `${time}:00` : time}`)} className="border border-ink bg-ink px-3 py-1.5 text-xs text-paper hover:bg-signal disabled:opacity-50">Apply</button>
+      <input id={timeId} type="time" step="1" value={time} onChange={(event) => setTime(event.target.value)} className="mt-1.5 w-full rounded-lg border border-hair bg-white px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-signal/30" />
+      <div className="mt-3 flex justify-end gap-2 border-t border-hair pt-3">
+        <button type="button" aria-label={`Cancel ${label.toLowerCase()} date selection`} onClick={onCancel} className="rounded-lg border border-hair bg-white px-3 py-2 text-xs font-medium hover:bg-paper-deep">Cancel</button>
+        <button type="button" aria-label={`Apply ${label.toLowerCase()} date selection`} disabled={!selectedDate || !time} onClick={() => onApply(`${selectedDate}T${time.length === 5 ? `${time}:00` : time}`)} className="rounded-lg bg-signal px-3 py-2 text-xs font-semibold text-white hover:bg-[#244bc6] disabled:opacity-50">Apply</button>
       </div>
     </section>
   );

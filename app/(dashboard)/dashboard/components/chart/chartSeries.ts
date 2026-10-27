@@ -7,29 +7,14 @@ import { WIKI_LANGUAGE_NAMES } from "@/lib/labels/wikiLanguageNames";
 import {
   decodePath,
   removeWikiPart,
-  WIKI_DOMAIN,
 } from "@/lib/helpers/page-path";
 
 export const CHART_TYPES = ["line", "area", "bar", "stacked"] as const;
 export type ChartType = (typeof CHART_TYPES)[number];
 
-/**
- * Categorical slots, handed out in this fixed order and never cycled — the
- * order is what keeps neighbouring series apart, so it is not cosmetic.
- *
- * Validated as a set against the white card surface (OKLab ΔE ×100, adjacent
- * pairs): worst CVD pair 9.2 under protanopia/deuteranopia (≥8 target), worst
- * normal-vision pair 23.5 (≥15 floor), every slot inside the L 0.43–0.77 band
- * and over the 0.10 chroma floor. Slot 1 is the nearest in-band step to the
- * brand red; the original --color-dash-event-* ramp could not be used as-is
- * (three of its steps read as grey, and its worst pair sat at ΔE 5.8).
- *
- * Yellow, aqua and magenta sit under 3:1 against white. That is allowed only
- * because identity never rests on colour here: every series is named in the
- * legend and its exact value is in the hover tooltip.
- */
+/** Stable categorical slots; every series is also named in the legend and tooltip. */
 export const SERIES_COLORS = [
-  "#a82838",
+  "#2b59e8",
   "#4a3aa7",
   "#eda100",
   "#0e8ea3",

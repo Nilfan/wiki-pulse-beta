@@ -217,7 +217,7 @@ export function HeartbeatFrame({
       aria-label={label}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="flex h-8 items-stretch border border-hair bg-card font-data text-[10.5px] leading-none"
+      className="flex h-8 max-w-full items-stretch rounded-full border border-hair bg-white text-[10.5px] leading-none"
     >
       <HeartbeatCell className="text-ink-3 uppercase tracking-[0.12em]">
         ingest

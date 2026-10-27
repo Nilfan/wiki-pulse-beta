@@ -4,6 +4,7 @@ import { formatTotal } from "./chartAxis";
 type Props = TooltipContentProps;
 
 const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "UTC",
   day: "2-digit",
   month: "short",
   hour: "2-digit",
@@ -17,7 +18,7 @@ export default function ChartTooltip({ active, payload, label }: Props) {
   const total = payload.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
 
   return (
-    <div className="border border-ink bg-shell px-3 py-2 shadow-[3px_3px_0_0_var(--color-cell-border)]">
+    <div className="rounded-lg border border-hair bg-white px-3 py-2 shadow-lg">
       <p className="font-data text-[11px] tracking-[0.08em] text-ink-3 uppercase">
         {TIMESTAMP_FORMATTER.format(new Date(Number(label)))}
       </p>

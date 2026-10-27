@@ -1,6 +1,8 @@
 "use client";
 
 import clsx from "clsx";
+import { IconCheck, IconChevronDown } from "@tabler/icons-react";
+import FilterPopover from "./FilterPopover";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 export type FilterOption = {
@@ -143,25 +145,15 @@ export default function FilterBaseButton({
             });
           }
         }}
-        className="flex items-center gap-2 border border-ink bg-white px-2.75 py-1.25 text-[13px] whitespace-nowrap outline-none transition-colors hover:bg-paper-deep focus-visible:ring-2 focus-visible:ring-signal focus-visible:ring-offset-2"
+        className="flex min-h-11 items-center gap-2.5 rounded-xl border border-[#dce4f0] bg-[#f8fafd] px-3.5 py-2.5 text-sm whitespace-nowrap outline-none transition-[background-color,border-color,box-shadow] hover:border-[#b9c9ec] hover:bg-[#eef3fd] aria-expanded:border-signal/40 aria-expanded:bg-[#eef3fd] aria-expanded:shadow-[0_0_0_3px_#2b59e80d] focus-visible:ring-2 focus-visible:ring-signal/30 focus-visible:ring-offset-2"
       >
-        <span className="text-ink-3">{name ?? "+"}</span>
-        <span>{value}</span>
-        <span aria-hidden="true" className="text-ink-3">
-          ▾
-        </span>
+        <span className="text-[13px] text-ink-3">{name ?? "+"}</span>
+        <span className="max-w-[min(13rem,35vw)] truncate font-medium" title={value}>{value}</span>
+        <IconChevronDown size={15} aria-hidden className={clsx("ml-0.5 shrink-0 text-ink-3 transition-transform motion-reduce:transition-none", isOpen && "rotate-180")} />
       </button>
 
       {isOpen ? (
-        <div
-          id={menuId}
-          role={optionContent ? "dialog" : "menu"}
-          aria-label={menuLabel ?? `${name ?? value} options`}
-          className={clsx(
-            "absolute left-0 top-[calc(100%+4px)] z-50 min-w-60 max-h-[min(70dvh,36rem)] overflow-y-auto border border-ink bg-white p-1 shadow-[3px_3px_0_var(--color-ink)]",
-            showOptionContent && optionContent && "w-[min(22rem,calc(100vw-3rem))]",
-          )}
-        >
+        <FilterPopover id={menuId} role={optionContent ? "dialog" : "menu"} label={menuLabel ?? `${name ?? value} options`} width={showOptionContent && optionContent ? 352 : 256}>
           {showOptionContent && optionContent ? optionContent.render(closeMenu, () => {
             setShowOptionContent(false);
             requestAnimationFrame(() => {
@@ -170,12 +162,12 @@ export default function FilterBaseButton({
           }) : (
           <div role={optionContent ? "menu" : undefined} aria-label={optionContent ? menuLabel : undefined}>
           {menuHeader ? (
-            <p className="px-2 py-1 text-[11px] tracking-wide text-ink-3">
+            <p className="px-3 pt-2 pb-2.5 text-[11px] font-semibold tracking-[0.08em] text-ink-3">
               {menuHeader}
             </p>
           ) : null}
           {multiple ? (
-            <div className="flex gap-1 px-1 pb-1">
+            <div className="flex gap-2 border-b border-hair px-1 pt-1 pb-2 mb-1">
               <button
                 type="button"
                 role="menuitem"
@@ -186,7 +178,7 @@ export default function FilterBaseButton({
                       .map((option) => option.value),
                   )
                 }
-                className="flex-1 border border-ink px-2 py-1 text-[12px] hover:bg-paper-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+                className="flex-1 rounded-lg border border-hair bg-paper px-3 py-2 text-xs font-medium hover:bg-[#e6ecfd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/30"
               >
                 Select all
               </button>
@@ -194,7 +186,7 @@ export default function FilterBaseButton({
                 type="button"
                 role="menuitem"
                 onClick={() => onValueChange([])}
-                className="flex-1 border border-ink px-2 py-1 text-[12px] hover:bg-paper-deep focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal"
+                className="flex-1 rounded-lg border border-hair bg-paper px-3 py-2 text-xs font-medium hover:bg-[#e6ecfd] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/30"
               >
                 Clear
               </button>
@@ -206,7 +198,7 @@ export default function FilterBaseButton({
             return (
               <div key={option.value}>
                 {option.separatorBefore ? (
-                  <div role="separator" className="my-1 border-t border-ink" />
+                  <div role="separator" className="my-2 border-t border-hair" />
                 ) : null}
                 <button
                   ref={(element) => {
@@ -235,40 +227,20 @@ export default function FilterBaseButton({
                     }
                   }}
                   className={clsx(
-                    "group flex w-full items-start justify-between gap-5 px-2 py-1.5 text-left text-[13px] outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-inherit border border-transparent ",
-                    {
-                      ["hover:bg-ink hover:text-white focus-visible:bg-ink focus-visible:text-white"]:
-                        !isSelected && !option.disabled && !multiple,
-                      ["border border-transparent hover:border-ink"]:
-                        multiple && !isSelected && !option.disabled,
-                      ["bg-ink text-white cursor-auto"]: isSelected,
-                    },
+                    "group flex min-h-10 w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-signal/30 focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-40",
+                    isSelected ? "bg-[#eaf0ff] font-medium text-signal" : "text-ink-soft hover:bg-paper focus-visible:bg-paper",
                   )}
                 >
-                  <div className="flex justify-between w-full">
-                    <span>{option.label}</span>
-                    {option.description ? (
-                      <span
-                        className={clsx(
-                          "block text-[12px] text-ink-3 text-end",
-                          {
-                            ["group-hover:text-white group-focus-visible:text-white"]:
-                              !isSelected && !option.disabled,
-                            ["text-white"]: isSelected,
-                          },
-                        )}
-                      >
-                        {option.description}
-                      </span>
-                    ) : null}
-                  </div>
+                  <span className="min-w-0 flex-1">{option.label}</span>
+                  {option.description && <span className="text-xs text-ink-3">{option.description}</span>}
+                  <IconCheck size={16} aria-hidden className={isSelected ? "shrink-0 text-signal" : "shrink-0 invisible"} />
                 </button>
               </div>
             );
           })}
           </div>
           )}
-        </div>
+        </FilterPopover>
       ) : null}
     </div>
   );

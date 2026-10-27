@@ -24,7 +24,7 @@ export default function IntervalFilter() {
 
   return (
     <FilterBaseButton
-      name="interval"
+      name="Bucket"
       value={
         interval === "auto"
           ? "15 min (auto)"
@@ -34,7 +34,7 @@ export default function IntervalFilter() {
       options={OPTIONS}
       onValueChange={([nextInterval]) => setInterval(nextInterval ?? interval)}
       menuLabel="Interval granularity"
-      menuHeader="GRANULARITY · date_trunc"
+      menuHeader="BUCKET SIZE"
     />
   );
 }

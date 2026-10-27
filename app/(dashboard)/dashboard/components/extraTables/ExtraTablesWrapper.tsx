@@ -1,4 +1,5 @@
-import { getTimeWindow } from "@/lib/queries/events";
+import { getEventsSeries, getTimeWindow, toEventsSeriesWire } from "@/lib/queries/events";
+import { getRecentEvents } from "@/lib/queries/recentEvents";
 import { getBreakdownPage } from "@/lib/queries/breakdown";
 import { BREAKDOWN_PAGE_SIZE } from "@/lib/queries/constants";
 import { getInsights } from "@/lib/queries/insights";
@@ -14,8 +15,7 @@ type Props = {
 };
 
 /**
- * First paint only; later filter changes are fetched by useInsights and
- * useBreakdown.
+ * First paint only; the overview owns subsequent filtered requests.
  */
 export default async function ExtraTablesWrapper(props: Props) {
   const searchParams = parseDashboardSearchParams(await props.searchParams);
@@ -24,7 +24,7 @@ export default async function ExtraTablesWrapper(props: Props) {
 
   const orgId = wikiOrgId.toString();
 
-  const [insights, pages, countries] = await Promise.all([
+  const [insights, pages, countries, series, recent] = await Promise.all([
     getInsights(orgId, searchParams, timeWindow),
     getBreakdownPage(orgId, "page", searchParams, timeWindow, {
       offset: 0,
@@ -36,11 +36,15 @@ export default async function ExtraTablesWrapper(props: Props) {
       limit: BREAKDOWN_PAGE_SIZE,
       facet: true,
     }),
+    getEventsSeries(orgId, searchParams, timeWindow),
+    getRecentEvents(orgId, searchParams, timeWindow),
   ]);
 
   return (
     <ExtraTablesView
       initialInsights={insights}
+      initialSeries={toEventsSeriesWire(series, timeWindow)}
+      initialRecent={recent}
       initialPages={pages}
       initialCountries={countries}
     />

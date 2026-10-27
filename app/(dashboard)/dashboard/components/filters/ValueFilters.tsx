@@ -14,21 +14,21 @@ export default function ValueFilters() {
       <SearchableFilter
         param="eventType"
         dimension="event"
-        name="event"
+        name="Event type"
         menuLabel="Event types"
         formatLabel={formatEventType}
       />
       <SearchableFilter
         param="page"
         dimension="page"
-        name="page"
+        name="Page"
         menuLabel="Pages"
         formatLabel={formatPage}
       />
       <SearchableFilter
         param="country"
         dimension="country"
-        name="language"
+        name="Language"
         menuLabel="Languages"
         formatLabel={formatCountry}
       />

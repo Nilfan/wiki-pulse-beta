@@ -44,7 +44,7 @@ export default function GroupByFilter() {
 
   return (
     <FilterBaseButton
-      name="group by"
+      name="Group by"
       value={
         selectedGroupBy.length
           ? selectedGroupBy.map((option) => option.label).join(", ")

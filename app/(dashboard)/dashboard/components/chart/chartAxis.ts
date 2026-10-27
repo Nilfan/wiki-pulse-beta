@@ -13,12 +13,14 @@ const Y_TICK_COUNT = 3;
 const DATE_LABEL_FROM_MS = DURATION_MS["7d"];
 
 const TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "UTC",
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
 });
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "UTC",
   day: "2-digit",
   month: "short",
 });
@@ -44,6 +46,7 @@ function trimZero(value: number) {
 }
 
 const CUSTOM_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "UTC",
   day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
 });
 

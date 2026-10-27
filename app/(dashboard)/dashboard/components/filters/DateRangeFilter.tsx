@@ -9,17 +9,17 @@ import FilterBaseButton, { type FilterOption } from "./FilterBaseButton";
 import { setDashboardSearchParams } from "./useDashboardFilter";
 
 const OPTIONS = [
-  { value: "15m", label: "15 min", description: "15 min" },
-  { value: "1h", label: "1 hour", description: "60 min" },
-  { value: "6h", label: "6 hours", description: "360 min" },
-  { value: "12h", label: "12 hours", description: "720 min" },
-  { value: "24h", label: "24 hours", description: "1440 min" },
-  { value: "2d", label: "2 days", description: "2880 min" },
-  { value: "3d", label: "3 days", description: "4320 min" },
-  { value: "7d", label: "7 days", description: "10080 min" },
-  { value: "14d", label: "14 days", description: "20160 min" },
-  { value: "21d", label: "21 days", description: "30240 min" },
-  { value: "60d", label: "60 days", description: "86400 min" },
+  { value: "15m", label: "15 min" },
+  { value: "1h", label: "1 hour" },
+  { value: "6h", label: "6 hours" },
+  { value: "12h", label: "12 hours" },
+  { value: "24h", label: "24 hours" },
+  { value: "2d", label: "2 days" },
+  { value: "3d", label: "3 days" },
+  { value: "7d", label: "7 days" },
+  { value: "14d", label: "14 days" },
+  { value: "21d", label: "21 days" },
+  { value: "60d", label: "60 days" },
   { value: "custom", label: "Custom period", separatorBefore: true },
 ] as const satisfies readonly FilterOption[];
 
@@ -60,9 +60,9 @@ function CustomPeriodForm({ start, end, onApply, onCancel, onBack }: {
   }
 
   return (
-    <form onSubmit={apply} className="bg-shell p-3" aria-label="Custom period">
-      <button type="button" onClick={onBack} className="mb-3 text-xs text-signal underline underline-offset-4">← Preset ranges</button>
-      <h2 className="mb-3 font-display text-sm">Custom period</h2>
+    <form onSubmit={apply} className="bg-white p-2" aria-label="Custom period">
+      <button type="button" onClick={onBack} className="mb-3 rounded-lg px-2 py-1.5 text-xs font-medium text-signal hover:bg-paper">← Preset ranges</button>
+      <h2 className="mb-4 text-base font-semibold">Custom period</h2>
       <div className="flex flex-col gap-3">
         <DateTimePicker
           id={`${id}-start`}
@@ -80,8 +80,8 @@ function CustomPeriodForm({ start, end, onApply, onCancel, onBack }: {
           invalid={Boolean(error)}
           describedBy={`${id}-help${error ? ` ${id}-error` : ""}`}
         />
-        <button type="submit" className="border border-ink bg-ink px-4 py-2 text-[13px] text-paper hover:bg-signal focus-visible:outline-2 focus-visible:outline-signal">Apply period</button>
-        <button type="button" onClick={onCancel} className="border border-ink px-3 py-2 text-[13px] hover:bg-paper-deep">Cancel</button>
+        <button type="submit" className="rounded-xl bg-signal px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#244bc6] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal">Apply period</button>
+        <button type="button" onClick={onCancel} className="rounded-xl border border-hair bg-white px-3 py-2.5 text-sm font-medium text-ink-soft hover:bg-paper">Cancel</button>
       </div>
       <p id={`${id}-help`} className="mt-2 text-xs text-ink-soft">Times in {Intl.DateTimeFormat().resolvedOptions().timeZone}. Start included, end excluded. Maximum span: 60 days.</p>
       {error && <p id={`${id}-error`} role="alert" className="mt-2 text-xs text-brand">{error}</p>}
@@ -97,7 +97,7 @@ export default function DateRangeFilter() {
 
   return (
     <FilterBaseButton
-      name="range"
+      name="Period"
       value={selectedRange?.label ?? params.range}
       selectedValues={[params.range]}
       options={OPTIONS}

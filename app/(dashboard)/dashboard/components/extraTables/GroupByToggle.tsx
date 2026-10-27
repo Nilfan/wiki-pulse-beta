@@ -49,7 +49,7 @@ export default function GroupByToggle({
       }
       onClick={toggle}
       className={clsx(
-        "border px-2 py-1 font-data text-[11.5px] transition-colors",
+        "rounded-md border px-2 py-1 text-[11.5px] transition-colors",
         disabled
           ? "cursor-not-allowed border-hair text-ink-3"
           : isGrouped

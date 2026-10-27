@@ -13,7 +13,7 @@ export default function ChartTypeTabs({ value, onChange }: Props) {
     <div
       role="tablist"
       aria-label="Chart type"
-      className="flex divide-x divide-hair border border-hair"
+      className="flex flex-wrap gap-0.5 rounded-[10px] bg-[#eef1f6] p-[3px]"
     >
       {CHART_TYPES.map((chartType) => (
         <button
@@ -23,10 +23,10 @@ export default function ChartTypeTabs({ value, onChange }: Props) {
           aria-selected={value === chartType}
           onClick={() => onChange(chartType)}
           className={clsx(
-            "px-3 py-1.5 font-data text-[12.5px] tracking-[0.02em]",
+            "min-h-9 rounded-[7px] px-3 py-1.5 text-sm capitalize",
             value === chartType
-              ? "bg-ink text-shell"
-              : "bg-card text-ink-soft hover:text-ink",
+              ? "bg-white font-semibold text-ink shadow-sm"
+              : "text-ink-soft hover:text-ink",
           )}
         >
           {chartType}

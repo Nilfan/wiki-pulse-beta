@@ -1,4 +1,4 @@
-import { Martian_Mono, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { Inter, Martian_Mono, Inter_Tight, JetBrains_Mono } from "next/font/google";
 
 export const martianMono = Martian_Mono({
   subsets: ["latin"],
@@ -16,4 +16,10 @@ export const jetBrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-jetbrains",
   display: "block",
+});
+
+export const marketingInter = Inter({
+  subsets: ["latin"],
+  variable: "--font-landing-inter",
+  display: "swap",
 });

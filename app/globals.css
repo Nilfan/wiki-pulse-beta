@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
+@source "./";
+@source "../lib";
 
 :root {
   --background: #ffffff;
@@ -14,15 +16,16 @@
   --live: #e8452b;
   --shell: #ffffff;
 
-  --font-display: "Martian Mono", ui-monospace, monospace;
-  --font-body: "Inter Tight", system-ui, -apple-system, sans-serif;
-  --font-data: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: var(--font-martian), ui-monospace, monospace;
+  --font-body: var(--font-jetbrains), system-ui, sans-serif;
+  --font-data: var(--font-jetbrains), ui-monospace, monospace;
 
   --gut: clamp(20px, 4vw, 64px);
   --maxw: 1180px;
 }
 
-@theme inline {
+/* Keep utilities variable-based so dashboard-scoped tokens also style controls. */
+@theme {
   --container-maxw: 1180px;
 
   --spacing-gut: clamp(20px, 4vw, 64px);

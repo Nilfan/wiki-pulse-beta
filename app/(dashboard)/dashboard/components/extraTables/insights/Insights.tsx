@@ -1,107 +1,35 @@
-import { useMemo, type ReactNode } from "react";
 import clsx from "clsx";
 import type { Insights as InsightsData } from "@/lib/queries/insights";
 import type { DashboardSearchParams } from "@/lib/queries/dashboardSearchParams";
-import { formatTotal, getTimeFormatter } from "../../chart/chartAxis";
-import { SERIES_COLORS } from "../../chart/chartSeries";
-import Sparkline from "./Sparkline";
+import useNow from "../../../../components/heartbeat/useNow";
+import { formatTotal } from "../../chart/chartAxis";
 
-type Props = {
-  insights: InsightsData;
-  range: DashboardSearchParams["range"];
-  isLoading: boolean;
-};
+type Props = { insights: InsightsData; range: DashboardSearchParams["range"]; isLoading: boolean };
 
-function formatDuration(ms: number) {
+function duration(ms: number) {
   const seconds = Math.max(0, ms) / 1000;
   if (seconds < 60) return `${seconds.toFixed(1)}s`;
-
-  const minutes = seconds / 60;
-  if (minutes < 60) return `${Math.floor(minutes)}m`;
-
-  const hours = minutes / 60;
-  return hours < 24 ? `${Math.floor(hours)}h` : `${Math.floor(hours / 24)}d`;
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+  return `${Math.floor(seconds / 86400)}d`;
 }
 
-export default function Insights({ insights, range, isLoading }: Props) {
-  const { buckets, lastEventMs, untilMs } = insights;
-
-  const peak = useMemo(
-    () =>
-      buckets.reduce<(typeof buckets)[number] | null>(
-        (best, bucket) => (bucket.events > (best?.events ?? 0) ? bucket : best),
-        null,
-      ),
-    [buckets],
-  );
-  const formatTime = useMemo(() => getTimeFormatter(range), [range]);
-
-  const freshnessGapMs = lastEventMs === null ? null : untilMs - lastEventMs;
-
+export default function Insights({ insights, isLoading }: Props) {
+  const now = useNow();
+  const latestAge = insights.lastEventMs === null ? null : duration((now ?? insights.untilMs) - insights.lastEventMs);
+  const cells = [
+    { label: "Sampled events", value: formatTotal(insights.events), detail: "in the selected period" },
+    { label: "Active wikis", value: formatTotal(insights.wikis), detail: "with at least one matching event" },
+    { label: "Unique pages", value: formatTotal(insights.paths), detail: insights.paths ? `${(insights.events / insights.paths).toFixed(1)} events per page on average` : "in the selected period" },
+    { label: "Latest event", value: latestAge ? `${latestAge} ago` : "—", detail: "newest matching stored event" },
+  ];
   return (
-    <div
-      className={clsx(
-        "grid grid-cols-2 border border-hair bg-card transition-opacity md:grid-cols-4 border-b-0 border-t-0",
-        isLoading && "opacity-45",
-      )}
-    >
-      <InsightCell
-        label="active wikis"
-        value={formatTotal(insights.wikis)}
-        aside={
-          <Sparkline
-            values={buckets.map(({ wikis }) => wikis)}
-            color={SERIES_COLORS[0]}
-          />
-        }
-      />
-      <InsightCell
-        label="peak / bucket"
-        value={peak ? formatTotal(peak.events) : "—"}
-        aside={peak ? formatTime(peak.timestamp) : null}
-      />
-      <InsightCell
-        label="unique pages"
-        value={formatTotal(insights.paths)}
-        aside={
-          <Sparkline
-            values={buckets.map(({ paths }) => paths)}
-            color={SERIES_COLORS[0]}
-          />
-        }
-      />
-      <InsightCell
-        label="last event"
-        value={freshnessGapMs === null ? "—" : formatDuration(freshnessGapMs)}
-        aside={freshnessGapMs === null ? "no data" : null}
-      />
-    </div>
-  );
-}
-
-type InsightCellProps = {
-  label: string;
-  value: string;
-  /** Sparkline, or a short muted note pinned to the bottom-right corner. */
-  aside: ReactNode;
-};
-
-function InsightCell({ label, value, aside }: InsightCellProps) {
-  return (
-    <div className="min-w-0 border-hair px-6 py-4 not-last:border-r max-md:nth-2:border-r-0 max-md:nth-[-n+2]:border-b">
-      <p className="font-data text-[11.5px] text-ink-3">{label}</p>
-      <div className="mt-2 flex items-end justify-between gap-3">
-        <p className="font-data text-[22px] leading-none font-medium text-ink tabular-nums">
-          {value}
-        </p>
-        {typeof aside === "string" ? (
-          <span className="font-data text-[12.5px] text-ink-3 tabular-nums">
-            {aside}
-          </span>
-        ) : (
-          aside
-        )}
-      </div>
+    <div className={clsx("grid grid-cols-1 gap-4 transition-opacity min-[480px]:grid-cols-2 xl:grid-cols-4", isLoading && "opacity-45")} aria-busy={isLoading}>
+      {cells.map(({ label, value, detail }) => <div key={label} className="flex min-w-0 flex-col gap-1 rounded-[14px] border border-hair bg-white px-5 py-4.5">
+        <span className="text-sm text-ink-soft">{label}</span>
+        <span className="[font-family:var(--font-inter-tight)] text-[32px] font-bold tabular-nums">{value}</span>
+        <span className="text-[13px] text-ink-3">{detail}</span>
+      </div>)}
     </div>
   );
 }

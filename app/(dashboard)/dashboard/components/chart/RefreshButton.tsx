@@ -16,7 +16,7 @@ export default function RefreshButton({ onClick, isLoading }: Props) {
       disabled={isLoading}
       aria-label="Refresh data"
       title="Refresh data"
-      className="flex size-8.5 items-center justify-center border border-hair bg-card text-ink-soft hover:text-ink disabled:cursor-wait disabled:text-ink-3"
+      className="flex size-8.5 items-center justify-center rounded-lg border border-hair bg-card text-ink-soft hover:text-ink disabled:cursor-wait disabled:text-ink-3"
     >
       <IconRefresh
         size={15}
