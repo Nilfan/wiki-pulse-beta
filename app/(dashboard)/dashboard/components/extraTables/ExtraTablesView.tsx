@@ -32,7 +32,10 @@ type Props = {
 };
 
 const formatPath = (value: string) => formatGroupValue("page", value);
-const formatCountry = (value: string) => value === "unknown" ? "Unspecified language" : formatGroupValue("country", value);
+const formatCountry = (value: string) =>
+  value === "unknown"
+    ? "Unspecified language"
+    : formatGroupValue("country", value);
 
 /** The by-type counts ignore the event type filter, so its key does too. */
 function withoutEventType(queryString: string) {
@@ -100,20 +103,17 @@ export default function ExtraTablesView({
     <div className="flex min-w-0 flex-col gap-5">
       <OverviewHeading untilMs={insights.untilMs} />
       <DashboardFilters />
-      <Insights
-        insights={insights}
-        range={params.range}
-        isLoading={isLoading}
-      />
+
       <div className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         <Chart initialSeries={initialSeries} />
         <ByTypeTable
-        types={insights.types}
-        isGroupedByType={params.groupBy.includes("event")}
-        isGroupByDisabled={params.eventType.length > 0}
-        isLoading={isTypesLoading}
-      />
+          types={insights.types}
+          isGroupedByType={params.groupBy.includes("event")}
+          isGroupByDisabled={params.eventType.length > 0}
+          isLoading={isTypesLoading}
+        />
       </div>
+
       <div className="grid min-w-0 gap-4 lg:grid-cols-2">
         <BreakdownTable
           title="Top pages"
@@ -133,7 +133,15 @@ export default function ExtraTablesView({
           withPie
         />
       </div>
-      <RecentEvents initialEvents={initialRecent} queryString={serializeDashboardSearchParams(params)} />
+      <Insights
+        insights={insights}
+        range={params.range}
+        isLoading={isLoading}
+      />
+      <RecentEvents
+        initialEvents={initialRecent}
+        queryString={serializeDashboardSearchParams(params)}
+      />
     </div>
   );
 }
