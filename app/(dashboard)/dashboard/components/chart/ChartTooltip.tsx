@@ -4,7 +4,6 @@ import { formatTotal } from "./chartAxis";
 type Props = TooltipContentProps;
 
 const TIMESTAMP_FORMATTER = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "UTC",
   day: "2-digit",
   month: "short",
   hour: "2-digit",

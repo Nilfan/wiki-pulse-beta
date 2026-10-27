@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocalTimeReady } from "@/lib/helpers/use-local-time-ready";
 import { useMemo, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import clsx from "clsx";
@@ -64,6 +65,7 @@ const SERIES_ANIMATION = {
 } as const;
 
 export default function Chart({ initialSeries }: Props) {
+  const localTimeReady = useLocalTimeReady();
   const [rangeOverlayContainer, setRangeOverlayContainer] =
     useState<HTMLDivElement | null>(null);
   const [isRangeSelecting, setIsRangeSelecting] = useState(false);
@@ -180,12 +182,21 @@ export default function Chart({ initialSeries }: Props) {
     ) : null;
 
   return (
-    <section aria-label="Activity chart" className="min-w-0 rounded-[14px] border border-hair bg-white px-4 py-5 sm:px-5.5">
+    <section
+      aria-label="Activity chart"
+      className="min-w-0 rounded-[14px] border border-hair bg-white px-4 py-5 sm:px-5.5"
+    >
       <header className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="min-w-0 flex-1 basis-60">
           <h2 className="text-lg font-semibold">Activity</h2>
-          <p className="mt-1 text-sm text-ink-3">Sampled events per {params.interval} bucket · {getRangeLabel(params)} · UTC</p>
-          <p className="mt-1 text-xs text-ink-3">{formatTotal(total)} events · Drag a period, then Apply range to confirm.</p>
+          <p className="mt-1 text-sm text-ink-3">
+            Sampled events per {params.interval} bucket ·{" "}
+            {localTimeReady ? getRangeLabel(params) : "—"} · local time
+          </p>
+          <p className="mt-1 text-xs text-ink-3">
+            {formatTotal(total)} events · Drag a period, then Apply range to
+            confirm.
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <CacheBadge
@@ -217,16 +228,13 @@ export default function Chart({ initialSeries }: Props) {
               data={rows}
               margin={CHART_MARGIN}
             >
-              <CartesianGrid
-                vertical={false}
-                stroke="var(--color-hair)"
-              />
+              <CartesianGrid vertical={false} stroke="var(--color-hair)" />
               <XAxis
                 dataKey="timestamp"
                 type="category"
                 interval={0}
                 ticks={timeTicks}
-                tickFormatter={formatTime}
+                tickFormatter={localTimeReady ? formatTime : () => ""}
                 tickLine={false}
                 tickMargin={10}
                 tick={AXIS_TICK}

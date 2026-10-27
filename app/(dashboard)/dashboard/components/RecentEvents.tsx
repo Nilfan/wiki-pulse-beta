@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLocalTimeReady } from "@/lib/helpers/use-local-time-ready";
 import clsx from "clsx";
 import type { RecentEvent } from "@/lib/queries/recentEvents";
 import { formatGroupValue } from "./chart/chartSeries";
@@ -11,7 +12,7 @@ const TYPE_VIEW: Record<string, { label: string; color: string }> = {
   categorize: { label: "Categorize", color: "bg-[#2b59e8]" },
   log: { label: "Log", color: "bg-[#a8b1c1]" },
 };
-const utcTime = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+const localTime = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
 function eventUrl(event: RecentEvent) {
   try {
@@ -21,6 +22,7 @@ function eventUrl(event: RecentEvent) {
 }
 
 export default function RecentEvents({ initialEvents, queryString }: { initialEvents: RecentEvent[]; queryString: string }) {
+  const localTimeReady = useLocalTimeReady();
   const [state, setState] = useState({ events: initialEvents, queryString, error: false });
   const [expanded, setExpanded] = useState(false);
   const initialQuery = useRef(queryString);
@@ -49,15 +51,15 @@ export default function RecentEvents({ initialEvents, queryString }: { initialEv
         <h2 id="recent-events-title" className="text-lg font-semibold">Recent events</h2>
         <button type="button" onClick={() => setExpanded(value => !value)} className="py-2 text-sm font-semibold text-signal hover:underline">{expanded ? "Show fewer" : "View latest 50 →"}</button>
       </header>
-      <p className="mb-3 text-xs text-ink-3">Newest stored events in the selected period. Times are UTC.</p>
+      <p className="mb-3 text-xs text-ink-3">Newest stored events in the selected period. Times are local.</p>
       {state.error && <p role="status" className="mb-3 text-sm text-[#9a3d0e]">Couldn’t refresh recent events. Showing the previous results; refresh the page to retry.</p>}
       <div className={clsx("overflow-x-auto transition-opacity", isLoading && "opacity-45")} aria-busy={isLoading}>
         <table className="w-full min-w-140 border-collapse text-sm">
-          <thead className="bg-paper text-left text-xs font-semibold tracking-[0.06em] text-ink-3"><tr>{["TIME (UTC)", "TYPE", "PAGE", "WIKI"].map(label => <th key={label} className="px-3 py-2.5">{label}</th>)}</tr></thead>
+          <thead className="bg-paper text-left text-xs font-semibold tracking-[0.06em] text-ink-3"><tr>{["TIME (LOCAL)", "TYPE", "PAGE", "WIKI"].map(label => <th key={label} className="px-3 py-2.5">{label}</th>)}</tr></thead>
           <tbody>{state.events.slice(0, expanded ? 50 : 5).map(event => {
             const type = TYPE_VIEW[event.type] ?? { label: event.type, color: "bg-[#a8b1c1]" };
             return <tr key={event.id} className="border-t border-[#eef1f6]">
-              <td className="px-3 py-3 [font-family:var(--font-jetbrains)] text-xs" title={event.timestamp}>{utcTime.format(new Date(event.timestamp))}</td>
+              <td className="px-3 py-3 [font-family:var(--font-jetbrains)] text-xs" title={localTimeReady ? new Date(event.timestamp).toLocaleString("en-GB") : undefined}>{localTimeReady ? localTime.format(new Date(event.timestamp)) : "—"}</td>
               <td className="px-3 py-3"><span className="inline-flex items-center gap-2 whitespace-nowrap"><span aria-hidden className={`size-2 rounded-full ${type.color}`} />{type.label}</span></td>
               <td className="max-w-100 truncate px-3 py-3"><a className="text-signal hover:underline" href={eventUrl(event)} target="_blank" rel="noreferrer">{formatGroupValue("page", event.path)}</a></td>
               <td className="px-3 py-3 text-ink-soft">{event.host.replace(/^https?:\/\//, "").replace(/\/$/, "")}</td>

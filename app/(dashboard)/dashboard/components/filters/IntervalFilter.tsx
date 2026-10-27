@@ -17,7 +17,7 @@ const OPTIONS = [
 export default function IntervalFilter() {
   const [interval, setInterval] = useDashboardFilter<string>({
     name: "interval",
-    defaultValue: "15m",
+    defaultValue: "5m",
     validValues: OPTIONS.map((option) => option.value),
   });
   const selectedInterval = OPTIONS.find((option) => option.value === interval);
@@ -27,7 +27,7 @@ export default function IntervalFilter() {
       name="Bucket"
       value={
         interval === "auto"
-          ? "15 min (auto)"
+          ? "5 min (auto)"
           : (selectedInterval?.label ?? interval)
       }
       selectedValues={[interval]}

@@ -32,7 +32,7 @@ const DashboardSearchParamsSchema = v.object({
   range: v.fallback(v.picklist([...RANGE_OPTIONS, "custom"]), "24h"),
   start: v.fallback(v.optional(v.string()), undefined),
   end: v.fallback(v.optional(v.string()), undefined),
-  interval: v.fallback(v.picklist(INTERVAL_OPTIONS), "15m"),
+  interval: v.fallback(v.picklist(INTERVAL_OPTIONS), "5m"),
   eventType: FilterValuesSchema,
   page: FilterValuesSchema,
   country: FilterValuesSchema,

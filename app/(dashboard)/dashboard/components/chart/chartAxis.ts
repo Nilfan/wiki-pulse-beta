@@ -13,14 +13,12 @@ const Y_TICK_COUNT = 3;
 const DATE_LABEL_FROM_MS = DURATION_MS["7d"];
 
 const TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "UTC",
   hour: "2-digit",
   minute: "2-digit",
   hour12: false,
 });
 
 const DATE_FORMATTER = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "UTC",
   day: "2-digit",
   month: "short",
 });
@@ -46,7 +44,6 @@ function trimZero(value: number) {
 }
 
 const CUSTOM_TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "UTC",
   day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: false,
 });
 
@@ -142,8 +139,8 @@ const RANGE_LABELS: Record<DashboardSearchParams["range"], string> = {
 
 export function getRangeLabel({ range, start, end }: DashboardPeriod) {
   if (range === "custom" && start && end) {
-    const format = (iso: string) => iso.replace("T", " ").replace(/\.000Z$/, "").replace(/Z$/, "");
-    return `${format(start)} – ${format(end)} UTC`;
+    const format = (iso: string) => new Date(iso).toLocaleString("en-GB", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+    return `${format(start)} – ${format(end)}`;
   }
   return RANGE_LABELS[range];
 }

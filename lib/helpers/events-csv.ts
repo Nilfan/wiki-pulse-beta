@@ -6,9 +6,13 @@ function cell(value: string) {
   return `"${safe.replaceAll('"', '""')}"`;
 }
 
-export function eventsCsv(events: readonly RecentEvent[]) {
+export function eventsCsv(events: readonly RecentEvent[], timeZone?: string) {
+  const formatter = timeZone ? new Intl.DateTimeFormat("en-GB", {
+    timeZone, year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  }) : undefined;
   return [
-    ["Timestamp (UTC)", "Type", "Page", "Wiki", "Language"],
-    ...events.map(event => [event.timestamp, event.type, event.path, event.host, event.country ?? ""]),
+    [`Timestamp (${timeZone ?? "UTC"})`, "Type", "Page", "Wiki", "Language"],
+    ...events.map(event => [formatter ? formatter.format(new Date(event.timestamp)) : event.timestamp, event.type, event.path, event.host, event.country ?? ""]),
   ].map(row => row.map(cell).join(",")).join("\r\n") + "\r\n";
 }
