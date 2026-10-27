@@ -155,6 +155,13 @@ export default function Chart({ initialSeries }: Props) {
   );
 
   const loadedWindow = getTimeWindow(loadedParams, untilMs);
+  const timeDomain: [number, number] = [
+    loadedWindow.since.getTime(),
+    Math.max(
+      loadedWindow.since.getTime() + 1,
+      untilMs - DURATION_MS[loadedParams.interval],
+    ),
+  ];
 
   const formatTime = useMemo(() => getTimeFormatter(range), [range]);
   const timeTicks = useMemo(() => getTimeTicks(rows), [rows]);
@@ -231,7 +238,9 @@ export default function Chart({ initialSeries }: Props) {
               <CartesianGrid vertical={false} stroke="var(--color-hair)" />
               <XAxis
                 dataKey="timestamp"
-                type="category"
+                type="number"
+                scale="time"
+                domain={timeDomain}
                 interval={0}
                 ticks={timeTicks}
                 tickFormatter={localTimeReady ? formatTime : () => ""}

@@ -2,152 +2,91 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EventsSeriesWire } from "@/lib/queries/events";
-import { revalidateDashboardData } from "../../actions";
 import { DEBOUNCE_MS, REFRESH_CHECK_INTERVAL_MS } from "./constants";
 import { getPreviousEventsRefreshTime } from "./helpers";
 
 export type EventsSeriesState = EventsSeriesWire & {
-  /**
-   * Filters the series on screen was fetched for. Lags the URL while a
-   * request is out, and is what the series has to be read with: reading old
-   * points with the new groupBy files them all under "unknown".
-   */
+  /** Read points with the filters they were returned for while a new request loads. */
   queryString: string;
   isLoading: boolean;
 };
 
-/**
- * Keeps the chart's series in step with the filter query string.
- *
- * Two guards, both of which the bare navigation-driven refetch lacked:
- *
- * - **Debounce.** Each change to `queryString` restarts the timer, so
- *   clicking through several filters fires one request instead of one per
- *   click.
- * - **Abort.** Whatever is in flight is aborted the moment the filters move
- *   again. Without this a slow response for the filters you just left can
- *   land after the fast response for the ones you are on, and the chart ends
- *   up showing a series that matches neither — the "filters get confused"
- *   symptom.
- *
- * The last good series stays on screen while the next one loads, so the chart
- * dims rather than collapsing to an empty frame.
- *
- * On top of that the current series is refetched every
- * {@link REFRESH_CHECK_INTERVAL_MS}. That refresh is silent — the chart does not dim
- * — it skips ticks while the tab is hidden, and a filter change restarts the
- * interval and aborts a refresh that is still in flight.
- *
- * `refresh` is the manual version: it first drops the server-side cache for
- * the org, so the refetch reads the database rather than the cached entry, and
- * dims the chart like a filter change does.
- */
+/** Fetch only the chart endpoint; the API owns period bounds and bucket contents. */
 export default function useEventsSeries(
   queryString: string,
   initialState: EventsSeriesState,
 ): EventsSeriesState & { refresh: () => Promise<void> } {
   const [state, setState] = useState(initialState);
-  // The filters the series currently on screen belongs to. Starts as whatever
-  // the server rendered, so the first mount reuses that data rather than
-  // immediately asking for it again, and moves only when a response lands.
-  const loadedQueryStringRef = useRef(queryString);
-  const abortRef = useRef<AbortController | null>(null);
-  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined,
+  const loadedQueryRef = useRef(initialState.queryString);
+  const queryRef = useRef(queryString);
+  const controllerRef = useRef<AbortController | null>(null);
+  const pendingQueryRef = useRef<string | null>(null);
+  const lastRefreshRef = useRef(
+    new URLSearchParams(initialState.queryString).get("range") === "custom"
+      ? getPreviousEventsRefreshTime()
+      : initialState.untilMs,
   );
-  // Latest filters, for a manual refresh that resolves after they have moved.
-  const queryStringRef = useRef(queryString);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const load = useCallback((targetQueryString: string) => {
-    // A debounced request still waiting would only repeat this one.
-    clearTimeout(debounceTimerRef.current);
-    abortRef.current?.abort();
+  const load = useCallback(async (target: string) => {
+    clearTimeout(debounceRef.current);
+    controllerRef.current?.abort();
     const controller = new AbortController();
-    abortRef.current = controller;
-
-    fetch(`/api/dashboard/events?${targetQueryString}`, {
-      signal: controller.signal,
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`Events request failed: ${response.status}`);
-        }
-        return response.json() as Promise<EventsSeriesWire>;
-      })
-      .then((series) => {
-        loadedQueryStringRef.current = targetQueryString;
-        setState({
-          ...series,
-          queryString: targetQueryString,
-          isLoading: false,
-        });
-      })
-      .catch((error: unknown) => {
-        // An abort is this hook superseding itself, not a failure.
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-
-        console.error("Failed to load the events series", error);
-        setState((current) => ({ ...current, isLoading: false }));
+    controllerRef.current = controller;
+    pendingQueryRef.current = target;
+    const refreshSlot = getPreviousEventsRefreshTime();
+    try {
+      const response = await fetch(`/api/dashboard/events?${target}`, {
+        signal: controller.signal,
+        cache: "no-store",
       });
+      if (!response.ok) throw new Error(`Events request failed: ${response.status}`);
+      const series: EventsSeriesWire = await response.json();
+      if (controller.signal.aborted) return;
+      loadedQueryRef.current = target;
+      lastRefreshRef.current = refreshSlot;
+      // Replace the complete snapshot. Never merge points from older periods.
+      setState({ ...series, queryString: target, isLoading: false });
+    } catch (error) {
+      if (controller.signal.aborted) return;
+      console.error("Failed to load the events series", error);
+      setState(current => ({ ...current, isLoading: false }));
+    } finally {
+      if (controllerRef.current === controller) pendingQueryRef.current = null;
+    }
   }, []);
 
   const refresh = useCallback(async () => {
-    setState((current) => ({ ...current, isLoading: true }));
-
-    try {
-      await revalidateDashboardData();
-    } catch (error) {
-      // Still worth refetching: the cached entry may have expired on its own.
-      console.error("Failed to revalidate the dashboard cache", error);
-    }
-
-    load(queryStringRef.current);
+    setState(current => ({ ...current, isLoading: true }));
+    await load(queryRef.current);
   }, [load]);
 
   useEffect(() => {
-    queryStringRef.current = queryString;
-    let prevRefreshTime = getPreviousEventsRefreshTime();
+    queryRef.current = queryString;
+    const checkForNewWindow = () => {
+      if (document.visibilityState === "hidden" || pendingQueryRef.current === queryString) return;
+      if (lastRefreshRef.current < getPreviousEventsRefreshTime()) void load(queryString);
+    };
+    const timer = setInterval(checkForNewWindow, REFRESH_CHECK_INTERVAL_MS);
+    document.addEventListener("visibilitychange", checkForNewWindow);
+    window.addEventListener("focus", checkForNewWindow);
+    window.addEventListener("pageshow", checkForNewWindow);
 
-    // Background refresh of whatever the filters currently are. Skipped while
-    // the tab is hidden so an idle tab does not keep hitting the API.
-    const refreshTimer = setInterval(() => {
-      if (document.visibilityState === "hidden") {
-        return;
-      }
-
-      const currentUpdateTime = getPreviousEventsRefreshTime();
-      if (prevRefreshTime < currentUpdateTime) {
-        prevRefreshTime = currentUpdateTime;
-        load(queryString);
-      }
-    }, REFRESH_CHECK_INTERVAL_MS);
-
-    if (queryString === loadedQueryStringRef.current) {
-      // Already showing exactly this series. Reached either on first mount or
-      // when the filters return to where they started while the request for
-      // the detour was still in flight — that one has just been aborted by
-      // this effect's previous cleanup, and nothing needs to replace it.
-      setState((current) =>
-        current.isLoading ? { ...current, isLoading: false } : current,
-      );
-      return () => {
-        clearInterval(refreshTimer);
-        abortRef.current?.abort();
-      };
+    if (loadedQueryRef.current === queryString) {
+      setState(current => current.isLoading ? { ...current, isLoading: false } : current);
+      checkForNewWindow();
+    } else {
+      setState(current => ({ ...current, isLoading: true }));
+      debounceRef.current = setTimeout(() => void load(queryString), DEBOUNCE_MS);
     }
-
-    setState((current) => ({ ...current, isLoading: true }));
-
-    debounceTimerRef.current = setTimeout(() => load(queryString), DEBOUNCE_MS);
-
-    // Runs before the next effect and on unmount: drops a request that has
-    // not gone out yet, and cancels one that has.
     return () => {
-      clearTimeout(debounceTimerRef.current);
-      clearInterval(refreshTimer);
-      abortRef.current?.abort();
+      clearTimeout(debounceRef.current);
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", checkForNewWindow);
+      window.removeEventListener("focus", checkForNewWindow);
+      window.removeEventListener("pageshow", checkForNewWindow);
+      controllerRef.current?.abort();
+      pendingQueryRef.current = null;
     };
   }, [queryString, load]);
 
