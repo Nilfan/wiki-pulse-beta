@@ -1,13 +1,11 @@
 import { connection } from "next/server";
-import { getHeartbeat } from "@/lib/queries/heartbeat";
-import { getWikiOrgId } from "@/lib/queries/organizations";
+import { getHeartbeat } from "@/lib/api/data";
 import HeartbeatBadge from "./HeartbeatBadge";
 
 /** First reading only; useHeartbeat polls for the next ones. */
 export default async function Heartbeat() {
   await connection();
-  const wikiOrgId = await getWikiOrgId();
-  const heartbeat = await getHeartbeat(wikiOrgId.toString());
+  const heartbeat = await getHeartbeat();
 
   return <HeartbeatBadge initialHeartbeat={heartbeat} />;
 }
