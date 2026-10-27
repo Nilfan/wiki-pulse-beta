@@ -16,19 +16,8 @@ export function getPrismaClient(config: PrismaClientGetterInput = {}) {
   const isLocal = pgUrl === LOCAL_PG_URL;
   const isLocalLabel = isLocal ? "local" : "env/prod";
   log(`PG_URL: ${isLocalLabel} url`);
-  let pool: Pool;
-  if (isLocal) {
-    pool = new Pool({
-      connectionString: pgUrl,
-    });
-  } else {
-    pool = new Pool({
-      connectionString: pgUrl,
-      ssl: {
-        rejectUnauthorized: false,
-      },
-    });
-  }
+  // Respect URL SSL options and pg environment defaults, as the app does.
+  const pool = new Pool({ connectionString: pgUrl });
   const adapter = new PrismaPg(pool);
   const prismaClient = new PrismaClient({ adapter });
 

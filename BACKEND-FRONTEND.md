@@ -46,3 +46,9 @@ This change preserves the existing public analytics and tracking access policy. 
 ## Verification
 
 After `pnpm build:frontend`, run `node tools/check-http-split.mjs`. It starts a local mock backend and the production frontend with APP_ROLE unset/empty and an empty DATABASE_URL, checks dashboard SSR requests, analytics forwarding and repeated filters, CSV headers/body, tracking POST/OPTIONS, refresh forwarding, upstream error status and unavailable-backend handling. It does not connect to a database. TEST_FRONTEND_PORT overrides its default port 3219.
+
+## Collector database connections
+
+The collector respects connection URL SSL options instead of forcing TLS on every environment URL. For a PostgreSQL server without SSL support use `?sslmode=disable`; TLS-enabled servers should use their provider's required mode. Check PGSSLMODE too if it is set. Failed TLS connections are not automatically downgraded.
+
+Retention cleanup shares the ingestion Prisma client and its database selection. FORCE_DEV_DB in lib/collector-config.ts still selects the development database when enabled, including for cleanup. Cleanup failures are logged and retried at the next scheduled interval instead of terminating the process. Restart the collector after deploying this change.
