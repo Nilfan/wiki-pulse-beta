@@ -18,6 +18,7 @@
     "start:backend": "APP_ROLE=backend next start",
     "prisma:studio:local": "npx prisma studio --url=\"postgresql://postgres:postgres@127.0.0.1:5432/nextjs_dev\"",
     "start:assistant": "APP_ROLE=backend tsx server/assistant/index.ts",
+    "start:assistant:prod": "APP_ROLE=backend NODE_ENV=production tsx server/assistant/index.ts",
     "dev:assistant": "APP_ROLE=backend NODE_ENV=development tsx watch server/assistant/index.ts",
     "test:assistant": "tsx --test server/assistant/config.test.ts server/assistant/service.test.ts server/assistant/ollama.test.ts server/assistant/tools.test.ts server/assistant/analytics.test.ts lib/assistant/websocket-transport.test.ts lib/assistant/markdown.test.tsx",
     "run:ollama:local": "OLLAMA_HOST=127.0.0.1:11434 ollama serve"
