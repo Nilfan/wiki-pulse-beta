@@ -10,6 +10,15 @@ export function backendUrl(path: string): URL {
 }
 
 export async function backendFetch(path: string, init: RequestInit = {}) {
+  // SSR uses the same local handlers as browser /api requests in development.
+  // No HTTP self-request is needed, so this also works on alternate dev ports.
+  if (process.env.NODE_ENV === "development") {
+    const { NextRequest } = await import("next/server");
+    const { dispatchApi } = await import("./dispatch");
+    const request = new NextRequest(new Request(new URL(path, "http://localhost"), init));
+    const key = request.nextUrl.pathname.replace(/^\/api\//, "");
+    return dispatchApi(key as Parameters<typeof dispatchApi>[0], request);
+  }
   return fetch(backendUrl(path), {
     ...init,
     cache: "no-store",
