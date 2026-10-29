@@ -81,8 +81,10 @@ does not add SSE formatting or a `[DONE]` string. `done` or `error` ends a reque
 Errors have `type: "error"`, `code`, and a safe `message`.
 
 Cancel with `{"version":1,"type":"cancel","requestId":"request-1"}`.
-Cancellation emits `done` with reason `cancelled`; a 30-second timeout emits
-`TIMEOUT`. Cancellation, disconnect, timeout, and service shutdown abort the
+Cancellation emits `done` with reason `cancelled`; a three-minute initial-response
+timeout emits `TIMEOUT`. The timer is cleared when the model produces text or
+starts a tool call; loading/start frames do not clear it. Cancellation, disconnect,
+timeout, and service shutdown abort the
 handler and suppress further chunks. A slot stays occupied until the handler
 settles, so handlers must honor their abort signal. There is one generation per
 connection and one per service process by default; excess requests receive
@@ -151,9 +153,11 @@ the same transport is rejected while one is active. AI SDK abort signals and
 stream cancellation send `cancel` when possible and close the connection.
 `reconnectToStream()` returns `null`: retries require an explicit new submission.
 Successful completion, errors, and cancellation release socket listeners and
-timers. Connection establishment is limited to 10 seconds and the entire request
-to 45 seconds (both configurable); the backend's 30-second generation deadline
-still applies. Buffered event/chunk queues are bounded.
+timers. Connection establishment is limited to 10 seconds. The browser allows
+195 seconds for the initial response (both configurable), giving the backend's
+three-minute wait some transport overhead. Both response timers are cleared on
+model text or a tool call, so they do not interrupt an active response.
+Buffered event/chunk queues are bounded.
 
 Outgoing text history is validated against the shared contract before connecting.
 Incoming chunks are validated with AI SDK's chunk schema before enqueueing;
@@ -173,10 +177,26 @@ memory across workspace navigation and panel minimization; reloading clears it.
 There is no local storage or database persistence. Unmounting aborts generation;
 minimizing keeps the current response running.
 
-The chat always connects to the current host's `/api/assistant-ws`, using `ws://`
-on HTTP and `wss://` on HTTPS. Next.js proxies that endpoint to
+The chat connects to `/api/assistant-ws` on the current browser host, using
+`wss://` for HTTPS and `ws://` for HTTP. This resolves to
+`ws://localhost:3000/api/assistant-ws` when opened locally.
+Next.js proxies that endpoint to
 `http://127.0.0.1:3001/ws/assistant` by default. Run Next.js on port 3000 and the
 assistant on port 3001 for local development. Port 3001 stays private.
+
+For Cloudflare Tunnel, point the public hostname at `http://localhost:3000`.
+The browser connects to `wss://YOUR_DOMAIN/api/assistant-ws`, and Next.js
+forwards the upgrade to the assistant on port 3001. Set the assistant's
+environment before starting it (replace `YOUR_DOMAIN` with your tunnel hostname):
+
+```sh
+ASSISTANT_ALLOWED_ORIGINS="http://localhost:3000,https://YOUR_DOMAIN" pnpm dev:assistant
+```
+
+Use the exact HTTPS origin without a trailing slash. The default allowlist only
+accepts `http://localhost:3000`, so a domain connection otherwise receives 403.
+Restart the assistant after changing this setting; update it when a temporary
+tunnel hostname changes. Keep the assistant running alongside Next.js.
 
 For split deployments, set the server-only `ASSISTANT_INTERNAL_URL` to the
 assistant service's HTTP(S) origin, e.g. `http://assistant.internal:3001`, before
@@ -413,7 +433,8 @@ pool on shutdown. No additional database migration is required.
 
 Tool executions are capped at four per request, outputs at 12,000 characters,
 and model generation at three steps (the third has tools disabled for the
-answer). The overall generation deadline stays 30 seconds. Tools run only in the
+answer). The initial-response deadline is three minutes and is cleared when the
+model produces text or starts a tool call. Tools run only in the
 backend; tool frames/results are not forwarded into browser history. The client
 shows a checking-information state, then text. Subsequent analytics questions
 must be grounded in fresh tool calls, not client-provided history.

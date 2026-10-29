@@ -4,6 +4,13 @@ import { dashboardContextSchema } from "./dashboard-context";
 
 export const PROTOCOL_VERSION = 1;
 export const MAX_FRAME_BYTES = 64 * 1024;
+
+/** Loading and SDK start frames are emitted before the model responds. */
+export function isAssistantResponseChunk(chunk: UIMessageChunk): boolean {
+  return (chunk.type === "text-delta" && chunk.delta.length > 0)
+    || (chunk.type === "data-status" && !!chunk.data && typeof chunk.data === "object"
+      && "state" in chunk.data && chunk.data.state === "tool");
+}
 const identifier = v.pipe(v.string(), v.minLength(1), v.maxLength(128), v.regex(/^[\w-]+$/));
 const textPart = v.strictObject({ type: v.literal("text"), text: v.pipe(v.string(), v.minLength(1), v.maxLength(8_000)) });
 const message = v.strictObject({

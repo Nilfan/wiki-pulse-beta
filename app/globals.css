@@ -105,7 +105,6 @@
 
 body {
   background: var(--background);
-  background: purple;
   color: var(--foreground);
   font-family: var(--font-inter-tight), system-ui, sans-serif;
   height: 100%;

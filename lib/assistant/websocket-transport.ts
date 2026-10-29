@@ -1,5 +1,5 @@
 import { uiMessageChunkSchema, type ChatTransport, type UIMessage, type UIMessageChunk } from "ai";
-import { MAX_FRAME_BYTES, parseClientFrame } from "./protocol";
+import { MAX_FRAME_BYTES, parseClientFrame, isAssistantResponseChunk } from "./protocol";
 import type { DashboardContext } from "./dashboard-context";
 
 export class AssistantTransportError extends Error {
@@ -14,6 +14,7 @@ type Options = {
   /** Injection for tests; production uses the browser's native WebSocket. */
   createSocket?: (url: string) => WebSocket;
   connectTimeoutMs?: number;
+  /** Initial response wait, cleared once model text or a tool call arrives. */
   requestTimeoutMs?: number;
   getDashboardContext?: () => DashboardContext | undefined;
 };
@@ -108,6 +109,7 @@ export class AssistantWebSocketTransport implements ChatTransport<UIMessage> {
           const parsed = await uiMessageChunkSchema().validate!(value.chunk);
           if (!parsed.success) throw new Error("Invalid chunk");
           if (ended) return;
+          if (isAssistantResponseChunk(parsed.value)) clearTimeout(requestTimer);
           if ((controller.desiredSize ?? 0) < -512) throw new Error("Slow consumer");
           controller.enqueue(parsed.value);
         } else if (value.type === "done") {
@@ -127,7 +129,8 @@ export class AssistantWebSocketTransport implements ChatTransport<UIMessage> {
     socket.addEventListener("error", failed);
     options.abortSignal?.addEventListener("abort", abort, { once: true });
     const connectTimer = setTimeout(() => finish(new AssistantTransportError("CONNECT_TIMEOUT", "Assistant connection timed out.")), this.options.connectTimeoutMs ?? 10_000);
-    const requestTimer = setTimeout(() => finish(new AssistantTransportError("TIMEOUT", "Assistant response timed out."), true), this.options.requestTimeoutMs ?? 45_000);
+    // Allow the server's three-minute initial wait plus connection/transport overhead.
+    const requestTimer = setTimeout(() => finish(new AssistantTransportError("TIMEOUT", "Assistant response timed out."), true), this.options.requestTimeoutMs ?? 195_000);
     if (options.abortSignal?.aborted) abort();
     return stream;
   }

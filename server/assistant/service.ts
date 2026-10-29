@@ -9,6 +9,7 @@ export type AssistantServiceOptions = {
   heartbeatMs?: number;
   shutdownGraceMs?: number;
   generate?: Generate;
+  /** Maximum wait for initial model text or a tool call; cleared once responding. */
   generationTimeoutMs?: number;
   maxConcurrentGenerations?: number;
 };
@@ -26,7 +27,7 @@ export function createAssistantService(options: AssistantServiceOptions) {
   }));
   if (!origins.size) throw new Error("At least one assistant origin is required");
   const pool = { active: 0, limit: options.maxConcurrentGenerations ?? 1 };
-  const timeoutMs = options.generationTimeoutMs ?? 30_000;
+  const timeoutMs = options.generationTimeoutMs ?? 180_000;
   if (!Number.isInteger(pool.limit) || pool.limit < 1 || !Number.isInteger(timeoutMs) || timeoutMs < 1) {
     throw new Error("Generation concurrency and timeout must be positive integers");
   }

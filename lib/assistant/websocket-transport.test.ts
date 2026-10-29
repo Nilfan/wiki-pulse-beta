@@ -91,6 +91,40 @@ test("rejects unsupported history and concurrent sends without opening extra soc
   await stream.cancel();
 });
 
+test("initial response timeout survives loading but stops for text or tools", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  for (const response of ["loading", "text", "tool", "other-request"] as const) {
+    const socket = new Socket();
+    const transport = new AssistantWebSocketTransport({
+      url: "ws://localhost/ws/assistant", requestTimeoutMs: 100,
+      createSocket: () => socket as unknown as WebSocket,
+    });
+    const reader = (await transport.sendMessages(input)).getReader();
+    socket.open();
+    socket.frame({ type: "accepted" });
+    socket.frame({ type: "chunk", chunk: { type: "start", messageId: "waiting" } });
+    await reader.read();
+    socket.frame({ type: "chunk", ...(response === "other-request" ? { requestId: "other" } : {}),
+      chunk: response === "text" || response === "other-request"
+        ? { type: "text-delta", id: "text", delta: "Hello" }
+        : { type: "data-status", data: { state: response }, transient: true },
+    });
+    // Flush schema validation before advancing the clock.
+    if (response !== "other-request") await reader.read();
+    const pending = reader.read();
+    if (response === "loading" || response === "other-request") {
+      const failure = assert.rejects(pending, { code: "TIMEOUT" });
+      t.mock.timers.tick(101);
+      await failure;
+      assert.equal(socket.sent.at(-1)?.type, "cancel");
+    } else {
+      t.mock.timers.tick(1_000);
+      socket.frame({ type: "done", reason: "completed" });
+      assert.equal((await pending).done, true);
+    }
+  }
+});
+
 test("submission snapshots dashboard context and strips SDK step markers from history", async () => {
   const socket = new Socket();
   const context = { range: "1h", interval: "5m", groupBy: [], eventType: [], page: [], country: ["fr"] } as const;

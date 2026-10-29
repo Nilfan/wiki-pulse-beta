@@ -142,16 +142,41 @@ test("cancellation aborts generation, suppresses late chunks, and limits concurr
   assert.equal((await first.next() as { code: string }).code, "INVALID_FRAME");
 });
 
-test("timeout aborts work and reports a bounded error", { timeout: 3_000 }, async (t) => {
+test("loading and start frames do not disable the initial response timeout", { timeout: 3_000 }, async (t) => {
   let aborted = false;
-  const { connect } = await fixture(t, async (_request, { signal }) => {
+  const { connect } = await fixture(t, async (_request, { signal, emit }) => {
+    emit({ type: "data-status", data: { state: "loading" }, transient: true });
+    emit({ type: "start", messageId: "waiting" });
     await new Promise<void>((resolve) => signal.addEventListener("abort", () => { aborted = true; resolve(); }, { once: true }));
   }, 25);
   const peer = await connect();
   peer.send(chat("timeout"));
   await peer.next();
+  assert.equal((await peer.next()).type, "chunk");
+  assert.equal((await peer.next()).type, "chunk");
   assert.equal((await peer.next() as { code: string }).code, "TIMEOUT");
   assert.equal(aborted, true);
+});
+
+test("model text and tool calls disable the deadline while work continues", { timeout: 3_000 }, async (t) => {
+  for (const tool of [false, true]) {
+    let aborted = false;
+    const { connect } = await fixture(t, async (_request, { signal, emit }) => {
+      emit(tool
+        ? { type: "data-status", data: { state: "tool", name: "analytics" }, transient: true }
+        : { type: "text-delta", id: "text", delta: "Hello" });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      aborted = signal.aborted;
+      emit({ type: "text-delta", id: "text", delta: "Finished" });
+    }, 25);
+    const peer = await connect();
+    peer.send(chat(`responding-${tool}`));
+    assert.equal((await peer.next()).type, "accepted");
+    assert.equal((await peer.next()).type, "chunk");
+    assert.equal((await peer.next()).type, "chunk");
+    assert.deepEqual(await peer.next(), { version: 1, type: "done", requestId: `responding-${tool}`, reason: "completed" });
+    assert.equal(aborted, false);
+  }
 });
 
 test("disconnect aborts work and reconnect does not replay it", { timeout: 3_000 }, async (t) => {

@@ -1,4 +1,5 @@
 import { WebSocket } from "ws";
+import { isAssistantResponseChunk } from "../../lib/assistant/protocol";
 import { GenerationError, parseClientFrame, type ErrorCode, type Generate, type ServerFrame } from "./protocol";
 
 export type GenerationPool = { active: number; limit: number };
@@ -62,6 +63,7 @@ export function attachSession(client: WebSocket, options: {
         signal: request.controller.signal,
         emit: (chunk) => {
           if (!request.terminal && !request.controller.signal.aborted) {
+            if (isAssistantResponseChunk(chunk)) clearTimeout(timeout);
             send({ version: 1, type: "chunk", requestId: request.id, chunk });
           }
         },
