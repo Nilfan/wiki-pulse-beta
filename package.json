@@ -19,7 +19,8 @@
     "prisma:studio:local": "npx prisma studio --url=\"postgresql://postgres:postgres@127.0.0.1:5432/nextjs_dev\"",
     "start:assistant": "APP_ROLE=backend tsx server/assistant/index.ts",
     "dev:assistant": "APP_ROLE=backend NODE_ENV=development tsx watch server/assistant/index.ts",
-    "test:assistant": "tsx --test server/assistant/config.test.ts server/assistant/service.test.ts server/assistant/ollama.test.ts server/assistant/tools.test.ts server/assistant/analytics.test.ts lib/assistant/websocket-transport.test.ts lib/assistant/markdown.test.tsx"
+    "test:assistant": "tsx --test server/assistant/config.test.ts server/assistant/service.test.ts server/assistant/ollama.test.ts server/assistant/tools.test.ts server/assistant/analytics.test.ts lib/assistant/websocket-transport.test.ts lib/assistant/markdown.test.tsx",
+    "run:ollama:local": "OLLAMA_HOST=127.0.0.1:11434 ollama serve"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.160",
@@ -30,7 +31,7 @@
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
     "dotenv": "^17.4.2",
-    "next": "16.2.6",
+    "next": "16.4.1",
     "ollama-ai-provider-v2": "^4.1.0",
     "pg": "^8.21.0",
     "react": "19.2.4",
