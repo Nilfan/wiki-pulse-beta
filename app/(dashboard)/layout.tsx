@@ -1,6 +1,7 @@
 import { marketingInter } from "@/app/fonts";
 import { Header } from "./components/Header";
 import WorkspaceNavigation from "./components/WorkspaceNavigation";
+import AssistantChat from "./components/AssistantChat";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -10,6 +11,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <Header />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+      <AssistantChat />
     </div>
   );
 }

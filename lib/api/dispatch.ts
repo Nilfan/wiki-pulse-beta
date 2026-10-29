@@ -18,7 +18,9 @@ export async function dispatchApi(
   request: NextRequest,
 ): Promise<Response> {
   // Frontend pages are always available; only local database handlers opt in.
-  const role = process.env.APP_ROLE || "frontend";
+  const role = process.env.NODE_ENV === "development"
+    ? "backend"
+    : process.env.APP_ROLE || "frontend";
   if (role !== "frontend" && role !== "backend")
     throw new Error("APP_ROLE must be frontend or backend");
   if (role === "backend") {

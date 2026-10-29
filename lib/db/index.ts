@@ -2,8 +2,10 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
 import { Pool } from "pg";
+import { databaseConnectionString } from "./connection";
 
-const connectionString = process.env.DATABASE_URL;
+// Match docker-compose.yml even when .env contains production credentials.
+const connectionString = databaseConnectionString(process.env.NODE_ENV, process.env.DATABASE_URL);
 const pool = new Pool({ connectionString });
 const adapter = new PrismaPg(pool);
 

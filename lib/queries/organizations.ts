@@ -2,9 +2,9 @@ import { WIKI_ORG } from "@/prisma/constants";
 import { prisma } from "@/lib/db";
 
 export async function getWikiOrgId(): Promise<bigint> {
-  const wikiOrg = await prisma.organization.findFirst({
+  const wikiOrg = await prisma.organization.findUnique({
     where: {
-      name: WIKI_ORG.name,
+      slug: WIKI_ORG.slug,
     },
     select: {
       id: true,
